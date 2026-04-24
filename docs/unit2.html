@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MDC HR Buddy — Unit 2: The Consent Problem</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{width:100%;height:100%;overflow:hidden;background:#000}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.stage{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
+.desktop{width:1440px;height:900px;background:#1e3a6b;position:relative;overflow:hidden;transform-origin:center center;transition:background 1.2s ease}
+.desktop.eod{background:#111e35}
+
+/* ── Transition screen ── */
+.transition-screen{position:absolute;inset:0;background:#060e1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;cursor:pointer}
+.tr-from{font-size:18px;color:rgba(255,255,255,.35);margin-bottom:8px;letter-spacing:.04em}
+.tr-date{font-size:52px;font-weight:700;color:#fff;letter-spacing:.02em;transition:all .8s ease}
+.tr-date.out{opacity:0;transform:translateY(-20px)}
+.tr-date.in{animation:slidein .8s ease forwards}
+.tr-time{font-size:22px;color:rgba(255,255,255,.5);margin-top:8px;letter-spacing:.06em;transition:all .8s ease}
+.tr-divider{width:1px;height:60px;background:rgba(255,255,255,.15);margin:24px 0}
+.tr-unit{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4);margin-bottom:6px}
+.tr-title{font-size:24px;font-weight:600;color:rgba(255,255,255,.85);text-align:center}
+.tr-skip{font-size:11px;color:rgba(255,255,255,.25);margin-top:40px;letter-spacing:.04em}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes slidein{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse-border{0%,100%{border-color:rgba(255,255,255,.35)}50%{border-color:rgba(255,255,255,.7)}}
+
+/* ── Progress ── */
+.prog{position:absolute;top:0;left:0;right:0;height:26px;background:rgba(0,0,0,0.4);display:flex;align-items:center;padding:0 14px;z-index:90;gap:8px}
+.prog-txt{font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:.04em}
+.prog-dots{display:flex;gap:5px}
+.prog-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);transition:background .5s}
+.prog-dot.on{background:#fff}
+.prog-dot.done{background:#2563eb}
+
+/* ── Taskbar ── */
+.taskbar{position:absolute;bottom:0;left:0;right:0;height:44px;background:#0d1117;display:flex;align-items:center;padding:0 6px;z-index:80;border-top:1px solid #1e293b}
+.tb-start{width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px}
+.tb-search{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:4px;height:28px;display:flex;align-items:center;padding:0 10px;gap:6px;color:rgba(255,255,255,0.45);font-size:12px;margin:0 4px;width:180px;flex-shrink:0}
+.tb-apps{display:flex;gap:1px;margin:0 6px;flex:1}
+.tb-app{width:38px;height:38px;border-radius:4px;display:flex;align-items:center;justify-content:center;position:relative}
+.tb-app.act::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:14px;height:2px;background:#2563eb;border-radius:2px}
+.tb-tray{margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 8px}
+.tb-time{color:rgba(255,255,255,0.75);font-size:11px;text-align:right;line-height:1.4}
+
+/* ── Windows ── */
+.win{position:absolute;background:#fff;border:1px solid #aaa;box-shadow:0 6px 28px rgba(0,0,0,0.5);display:flex;flex-direction:column;transition:opacity .5s ease}
+.win.top{box-shadow:0 10px 44px rgba(0,0,0,0.65)}
+.win.dimmed{opacity:.22;pointer-events:none}
+.win.eod-dim{opacity:.15;pointer-events:none}
+.tbar{height:30px;display:flex;align-items:center;padding:0 4px;gap:4px;flex-shrink:0;user-select:none}
+.tbar-ico{width:15px;height:15px;border-radius:2px;flex-shrink:0}
+.tbar-ttl{font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px}
+.tbar-btns{display:flex;margin-left:auto}
+.tbb{width:36px;height:30px;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;color:#555}
+.tbb:hover{background:#e5e7eb}
+.tbb.cl:hover{background:#c42b1c;color:#fff}
+
+/* Teams */
+.teams-layout{display:flex;flex:1;overflow:hidden}
+.teams-sidebar{width:46px;background:#201f42;display:flex;flex-direction:column;align-items:center;padding:6px 0;gap:2px;flex-shrink:0}
+.ts-item{width:38px;height:38px;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,0.55);font-size:9px;gap:2px;position:relative}
+.ts-item.act{color:#fff}
+.ts-item.act::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;background:#7c7dff;border-radius:0 2px 2px 0}
+.ts-badge{position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;background:#dc2626;color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.teams-panel{width:190px;background:#f3f2f1;border-right:1px solid #e1dfdd;display:flex;flex-direction:column;flex-shrink:0}
+.tc-row{padding:6px 10px;border-bottom:1px solid #ece9e8;display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+.tc-row:hover,.tc-row.active{background:#edebe9}
+.tc-avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.tc-name{font-size:11px;font-weight:600;color:#111;display:flex;justify-content:space-between}
+.tc-time-sm{font-size:9px;color:#888;font-weight:400}
+.tc-preview{font-size:10px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.tc-unread{width:14px;height:14px;border-radius:50%;background:#dc2626;color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.teams-chat{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.tc-chat-hdr{background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tc-body{flex:1;overflow:hidden;padding:10px 12px;display:flex;flex-direction:column;gap:10px;background:#fafafa}
+.tc-day{text-align:center;font-size:10px;color:#aaa;display:flex;align-items:center;gap:8px}
+.tc-day::before,.tc-day::after{content:'';flex:1;height:1px;background:#e5e7eb}
+.tc-msg{display:flex;gap:8px}
+.tc-msg-av{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;margin-top:2px}
+.tc-msg-who{font-size:12px;font-weight:600;color:#111}
+.tc-msg-when{font-size:10px;color:#aaa;margin-left:6px}
+.tc-bubble{border-radius:0 6px 6px 6px;padding:7px 10px;font-size:12px;color:#333;line-height:1.5;background:#fff;border:1px solid #e5e7eb;margin-top:3px}
+.tc-bubble.urgent{border-left:3px solid #dc2626;background:#fef9f9}
+.tc-bubble.key{border-left:3px solid #5b5fc7;background:#f5f5ff}
+.tc-cal-invite{border:1px solid #e5e7eb;border-radius:4px;padding:8px 10px;background:#f0f5ff;margin-top:4px;border-left:3px solid #2563eb}
+.tc-cal-title{font-size:11px;font-weight:600;color:#1e3a6b}
+.tc-cal-meta{font-size:10px;color:#6b7280;margin-top:2px}
+.tc-input-area{border-top:1px solid #e5e7eb;padding:6px 10px;background:#fff;flex-shrink:0}
+.tc-input-box{border:1px solid #e5e7eb;border-radius:4px;padding:6px 10px;font-size:12px;color:#aaa;display:flex;align-items:center}
+
+/* HelpGate */
+.hg-subnav{background:#f9fafb;border-bottom:1px solid #e5e7eb;padding:3px 10px;display:flex;gap:12px;font-size:10px;color:#888;flex-shrink:0}
+.hg-subnav span:first-child{color:#7a1e2e;font-weight:700;border-bottom:2px solid #7a1e2e;padding-bottom:1px}
+.hg-filter-row{padding:4px 8px;border-bottom:1px solid #e5e7eb;background:#fff;display:flex;gap:6px;flex-shrink:0}
+.hg-srch{flex:1;border:1px solid #d1d5db;font-size:10px;padding:3px 7px;color:#555}
+.hg-filter-btn{background:#7a1e2e;color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border:none}
+.hg-thead{display:grid;grid-template-columns:14px 1fr 60px;padding:3px 8px;background:#f0f0f0;font-size:9px;font-weight:700;color:#555;border-bottom:1px solid #d1d5db;flex-shrink:0}
+.hg-rows{flex:1;overflow:hidden}
+.hg-row{display:grid;grid-template-columns:14px 1fr 60px;padding:4px 8px;border-bottom:1px solid #f0f0f0;font-size:10px;color:#333;align-items:center;min-height:24px}
+.hg-row.urg{background:#fef2f2}
+.hg-chk{width:10px;height:10px;border:1px solid #d1d5db;border-radius:1px}
+.hg-pill{font-size:8px;font-weight:700;padding:1px 5px;border-radius:2px;text-align:center}
+.hg-pill.U{background:#dc2626;color:#fff}
+.hg-pill.O{background:#e5e7eb;color:#374151}
+.hg-pill.N{background:#dbeafe;color:#1e40af}
+
+/* HR Buddy */
+.hrb-dock{position:absolute;top:26px;right:0;width:255px;bottom:44px;display:flex;flex-direction:column;background:#fff;border-left:1px solid #d0d9e8;box-shadow:-3px 0 20px rgba(37,99,235,.1);z-index:40;transition:opacity .5s}
+.hrb-dock.eod-dim{opacity:.15;pointer-events:none}
+.hrb-tbar{height:30px;background:#fff;border-bottom:1px solid #e0ecff;display:flex;align-items:center;padding:0 8px;gap:6px;flex-shrink:0}
+.hrb-tbar-title{font-size:12px;font-weight:600;color:#111;flex:1}
+.hrb-tbar-btns{display:flex;gap:4px;color:#888;font-size:12px}
+.hrb-body{flex:1;background:linear-gradient(180deg,#e8f0fe 0%,#f0f4ff 60%,#eef2fb 100%);display:flex;flex-direction:column;padding:14px 12px;gap:10px;overflow:hidden}
+.hrb-badge{background:#2563eb;color:#fff;font-size:11px;font-weight:700;padding:3px 14px;border-radius:4px;align-self:flex-end}
+.hrb-bubble{background:#fff;border-radius:0 8px 8px 8px;padding:10px 12px;font-size:12px;line-height:1.55;color:#333;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.hrb-restricted{background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;padding:8px 10px;font-size:11px;color:#92400e;display:flex;gap:6px;align-items:flex-start}
+.hrb-footer{border-top:1px solid #e5e7eb;background:#fff;padding:6px 8px;flex-shrink:0}
+.hrb-inp-wrap{border:1px solid #d1d5db;border-radius:4px;padding:5px 8px;display:flex;align-items:center;gap:6px}
+.hrb-inp{flex:1;font-size:12px;color:#aaa;border:none;outline:none;background:transparent}
+
+/* Carry-forward notes card on desktop */
+.cf-card{position:absolute;background:#fff;border:1px solid #dbeafe;border-left:3px solid #2563eb;padding:10px 12px;width:196px;z-index:30;box-shadow:0 2px 10px rgba(0,0,0,.25);transition:opacity .5s}
+.cf-card.dimmed{opacity:.15;pointer-events:none}
+.cf-card-ttl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#2563eb;margin-bottom:6px}
+.cf-item{display:flex;gap:5px;font-size:10px;color:#374151;margin-bottom:4px;line-height:1.4}
+.cf-dot{width:4px;height:4px;border-radius:50%;background:#2563eb;flex-shrink:0;margin-top:4px}
+
+/* Toast */
+.toast-zone{position:absolute;bottom:50px;right:4px;width:248px;display:flex;flex-direction:column;gap:5px;z-index:75;transition:opacity .5s}
+.toast-card{background:#1c2535;border:1px solid #2d3f55;border-radius:5px;padding:8px 10px;color:#fff}
+.toast-app-row{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.toast-app-ico{width:14px;height:14px;border-radius:2px;flex-shrink:0}
+.toast-app-name{font-size:10px;font-weight:700;color:#d1d5db}
+.toast-x{margin-left:auto;color:#6b7280;font-size:10px;cursor:pointer}
+.toast-msg{font-size:11px;color:#e5e7eb;line-height:1.4}
+
+/* ── Node 1 decision overlay ── */
+.overlay{position:absolute;inset:0;background:rgba(8,18,36,.65);display:flex;align-items:center;justify-content:center;z-index:60}
+.decision-card{background:#fff;border:1px solid #e5e7eb;box-shadow:0 10px 48px rgba(0,0,0,.55);padding:26px 30px;width:520px;border-radius:2px;animation:slidein .4s ease}
+.dec-context{font-size:12px;color:#6b7280;font-style:italic;margin-bottom:4px}
+.dec-title{font-size:18px;font-weight:600;color:#111827;margin-bottom:18px;line-height:1.3}
+.dec-tiles{display:flex;flex-direction:column;gap:8px}
+.d-tile{border:1px solid #d1d5db;border-radius:3px;padding:12px 14px;background:#fff;cursor:pointer;display:flex;gap:10px;align-items:flex-start;transition:border-color .15s,box-shadow .15s}
+.d-tile:hover{border-color:#2563eb;box-shadow:0 0 0 2px #eff6ff}
+.d-tile__key{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
+.d-tile.a .d-tile__key{background:#fef2f2;color:#dc2626}
+.d-tile.b .d-tile__key{background:#eff6ff;color:#2563eb}
+.d-tile.c .d-tile__key{background:#f0fdf4;color:#059669}
+.d-tile.d .d-tile__key{background:#fef2f2;color:#dc2626}
+.d-tile.e .d-tile__key{background:#eff6ff;color:#2563eb}
+.d-tile.f .d-tile__key{background:#f0fdf4;color:#059669}
+.d-tile__main{font-size:13px;font-weight:500;color:#111;line-height:1.4}
+.d-tile__sub{font-size:11px;color:#6b7280;font-weight:400;margin-top:2px}
+.d-tile__icon{font-size:16px;flex-shrink:0;margin-top:2px}
+
+/* ── Teams meeting ── */
+.meeting-overlay{position:absolute;inset:0;background:rgba(4,8,20,.80);display:flex;align-items:center;justify-content:center;z-index:65;animation:fadein .5s ease}
+.meeting-window{width:820px;background:#1b1b2e;border-radius:4px;overflow:hidden;box-shadow:0 16px 64px rgba(0,0,0,.8);display:flex;flex-direction:column;animation:slidein .4s ease}
+.meeting-titlebar{background:#151526;padding:8px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2a2a4a}
+.meeting-title-txt{font-size:12px;font-weight:600;color:rgba(255,255,255,.8);flex:1}
+.meeting-controls{display:flex;gap:6px;margin-left:auto}
+.meeting-ctrl{width:28px;height:28px;border-radius:4px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(255,255,255,.5);cursor:pointer}
+.meeting-body{display:flex;flex:1}
+.meeting-participants{flex:1;padding:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;background:#1b1b2e}
+.participant-tile{width:160px;height:120px;background:#252540;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:2px solid transparent;transition:border-color .3s}
+.participant-tile.speaking{border-color:#2563eb}
+.participant-av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff}
+.participant-name{font-size:11px;color:rgba(255,255,255,.75);text-align:center;line-height:1.3}
+.participant-role{font-size:9px;color:rgba(255,255,255,.4)}
+.meeting-transcript{width:280px;background:#13132a;border-left:1px solid #2a2a4a;display:flex;flex-direction:column}
+.transcript-hdr{padding:10px 14px;font-size:11px;font-weight:600;color:rgba(255,255,255,.5);border-bottom:1px solid #2a2a4a;letter-spacing:.04em;text-transform:uppercase}
+.transcript-body{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;max-height:300px}
+.transcript-line{animation:slidein .3s ease}
+.tl-who{font-size:10px;font-weight:700;margin-bottom:3px}
+.tl-text{font-size:12px;color:rgba(255,255,255,.8);line-height:1.5}
+.meeting-footer{background:#151526;padding:12px 20px;display:flex;align-items:center;gap:12px;border-top:1px solid #2a2a4a}
+.meeting-status{font-size:11px;color:rgba(255,255,255,.4);flex:1}
+.meeting-btn{background:#2563eb;color:#fff;border:none;font-size:12px;font-weight:600;padding:8px 20px;border-radius:3px;cursor:pointer;transition:background .15s}
+.meeting-btn:hover{background:#1d4ed8}
+.meeting-btn.end{background:#dc2626}
+.meeting-btn.end:hover{background:#b91c1c}
+
+/* ── Daniel's email card ── */
+.eod-overlay{position:absolute;inset:0;background:rgba(4,8,20,.72);z-index:55;animation:fadein .8s ease;display:flex;align-items:center;justify-content:center}
+.daniel-card-wrap{display:flex;flex-direction:column;gap:14px;width:520px;animation:slidein .5s ease}
+.daniel-card{background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 40px rgba(0,0,0,.55);border-radius:2px;overflow:hidden}
+.daniel-card-hdr{background:#f9fafb;border-bottom:1px solid #e5e7eb;padding:12px 16px;display:flex;align-items:center;gap:10px}
+.daniel-system{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#9ca3af}
+.daniel-from{font-size:12px;color:#374151;margin-left:auto}
+.daniel-subject{font-size:15px;font-weight:600;color:#111827;padding:12px 16px 8px;border-bottom:1px solid #f0f0f0}
+.daniel-body{padding:14px 16px;font-size:13px;line-height:1.75;color:#374151}
+.daniel-questions{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.daniel-q{display:flex;gap:8px;padding:8px 10px;background:#f8f9fa;border-left:2px solid #374151;font-size:13px;color:#111}
+.daniel-q-num{font-weight:700;flex-shrink:0;color:#6b7280}
+.dec-context-eod{font-size:12px;color:rgba(255,255,255,.55);text-align:center;font-style:italic}
+.d-tile-wrap{background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 40px rgba(0,0,0,.55);padding:20px 24px;border-radius:2px}
+.d-tile-prompt{font-size:13px;font-weight:600;color:#111;margin-bottom:12px}
+
+/* ── Debrief ── */
+.debrief-overlay{position:absolute;inset:0;background:rgba(4,8,20,.88);z-index:70;display:flex;align-items:center;justify-content:center;animation:fadein .4s ease}
+.debrief-card{background:#fffef7;border-left:4px solid #1e3a6b;box-shadow:0 12px 56px rgba(0,0,0,.7);padding:26px 30px;width:580px;max-height:660px;overflow-y:auto;animation:slidein .4s ease}
+/* Opening screen */
+.opening-screen{position:fixed;inset:0;background:#1e3a6b;z-index:999;display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+.opening-card{background:#fffef7;border-left:4px solid #2563eb;box-shadow:0 12px 56px rgba(0,0,0,.7);padding:32px 36px;width:100%;max-width:640px;border-radius:2px}
+.op-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#6b7280;margin-bottom:16px}
+.op-body{font-size:14px;line-height:1.8;color:#1f2937}.op-body p{margin-bottom:14px}
+.op-quote{border-left:3px solid #93c5fd;padding:10px 14px;margin:4px 0 14px;background:#f0f7ff;font-size:13px;line-height:1.7;color:#1e3a6b;font-style:italic}
+.op-files{background:#f9fafb;border:1px solid #e5e7eb;border-radius:3px;padding:14px 16px;margin:4px 0 14px;font-size:12.5px;line-height:1.7;color:#374151}
+.op-files-row{display:flex;gap:8px;align-items:flex-start;padding:4px 0}.op-files-row+.op-files-row{border-top:1px solid #e5e7eb;margin-top:8px;padding-top:12px}
+.op-file-badge{flex-shrink:0;width:28px;height:20px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;margin-top:2px}
+.op-cta{font-size:15px;font-weight:700;color:#1e3a6b;margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb}
+.op-btn{display:inline-block;background:#2563eb;color:#fff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:3px;border:none;cursor:pointer;margin-top:12px;letter-spacing:.01em}
+.op-btn:hover{background:#1d4ed8}
+.db-eyebrow{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;margin-bottom:8px}
+.db-heading{font-size:17px;font-weight:600;color:#1e3a6b;margin-bottom:12px}
+.db-meeting-summary{background:#f0f4fa;border-left:3px solid #2d4a7a;padding:10px 12px;font-size:12px;color:#374151;line-height:1.6;margin-bottom:14px}
+.db-body{font-size:13px;line-height:1.75;color:#374151}
+.db-body p{margin-bottom:10px}
+.db-callout{padding:9px 11px;border-left:3px solid #d97706;background:#fffbeb;font-size:12px;line-height:1.6;margin:8px 0}
+.db-callout.good{border-color:#059669;background:#f0fdf4}
+.db-callout.info{border-color:#2563eb;background:#eff6ff}
+.db-reinf{font-size:13px;font-style:italic;color:#1e3a6b;border-top:1px solid #e5e7eb;margin-top:14px;padding-top:14px;line-height:1.75}
+.db-closing{font-size:13px;color:#374151;border-top:1px solid #e5e7eb;margin-top:14px;padding-top:14px;line-height:1.75}
+.db-closing p{margin-bottom:8px}
+.carry{background:#eff6ff;border:1px solid #dbeafe;padding:14px 16px;margin-top:14px}
+.carry-ttl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#2563eb;margin-bottom:8px}
+.carry-item{display:flex;gap:6px;font-size:12px;color:#1f2937;margin-bottom:7px;line-height:1.5}
+.carry-dot{width:5px;height:5px;border-radius:50%;background:#2563eb;flex-shrink:0;margin-top:5px}
+.cont-btn{display:inline-block;margin-top:16px;background:#1e3a6b;color:#fff;font-size:12px;font-weight:500;padding:9px 20px;cursor:pointer;border-radius:2px;border:none}
+.cont-btn:hover{background:#2a4d8f}
+
+/* ── Mobile ── */
+@media(max-width:768px){
+  html,body,#root{overflow-y:auto;overflow-x:hidden;height:auto;min-height:100%;background:#1e3a6b}
+  .stage{display:block;height:auto;min-height:100vh}
+  .desktop{display:none}
+}
+.mob-root{display:none}
+@media(max-width:768px){.mob-root{display:flex;flex-direction:column;min-height:100vh;background:#1e3a6b;font-family:'Segoe UI',system-ui,sans-serif}}
+.mob-hdr{background:#0d1117;padding:10px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50;border-bottom:1px solid #1e293b}
+.mob-hdr-title{font-size:12px;color:rgba(255,255,255,.55);flex:1;letter-spacing:.03em}
+.mob-hdr-time{font-size:12px;color:rgba(255,255,255,.75);font-weight:500}
+.mob-prog-dots{display:flex;gap:4px}
+.mob-prog-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .5s}
+.mob-prog-dot.on{background:#fff}
+.mob-body{flex:1;padding:16px 14px 32px;display:flex;flex-direction:column;gap:14px}
+.mob-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.4);margin-bottom:-6px}
+.mob-card{background:#fff;border-radius:4px;overflow:hidden;box-shadow:0 3px 16px rgba(0,0,0,.4)}
+.mob-card-hdr{padding:8px 12px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+.mob-msg{padding:10px 12px;border-bottom:1px solid #f0f0f0;display:flex;gap:8px}
+.mob-av{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.mob-msg-who{font-size:12px;font-weight:600;color:#111}
+.mob-msg-when{font-size:10px;color:#aaa;margin-left:6px}
+.mob-bubble{font-size:13px;color:#333;line-height:1.5;margin-top:4px;padding:8px 10px;border-radius:0 6px 6px 6px;border:1px solid #e5e7eb}
+.mob-bubble.key{border-left:3px solid #5b5fc7;background:#f5f5ff}
+.mob-bubble.success{border-left:3px solid #059669;background:#f0fdf4}
+.mob-cf-card{background:#eff6ff;border:1px solid #dbeafe;border-left:3px solid #2563eb;border-radius:4px;padding:12px 14px}
+.mob-cf-ttl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#2563eb;margin-bottom:8px}
+.mob-cf-item{display:flex;gap:6px;font-size:12px;color:#1f2937;margin-bottom:5px;line-height:1.4}
+.mob-cf-dot{width:4px;height:4px;border-radius:50%;background:#2563eb;flex-shrink:0;margin-top:5px}
+.mob-dec-prompt-txt{background:rgba(255,255,255,.1);border-radius:4px;padding:12px 14px;font-size:14px;color:rgba(255,255,255,.9);line-height:1.55;font-style:italic}
+.mob-d-tiles{display:flex;flex-direction:column;gap:8px}
+.mob-d-tile{background:#fff;border:1.5px solid #d1d5db;border-radius:4px;padding:14px 16px;display:flex;gap:10px;align-items:flex-start;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mob-d-tile:active{background:#eff6ff;border-color:#2563eb}
+.mob-d-tile__key{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.mob-d-tile.a .mob-d-tile__key{background:#fef2f2;color:#dc2626}
+.mob-d-tile.b .mob-d-tile__key{background:#eff6ff;color:#2563eb}
+.mob-d-tile.c .mob-d-tile__key{background:#f0fdf4;color:#059669}
+.mob-d-tile.d .mob-d-tile__key{background:#fef2f2;color:#dc2626}
+.mob-d-tile.e .mob-d-tile__key{background:#eff6ff;color:#2563eb}
+.mob-d-tile.f .mob-d-tile__key{background:#f0fdf4;color:#059669}
+.mob-d-tile__main{font-size:14px;font-weight:500;color:#111;line-height:1.4}
+.mob-d-tile__sub{font-size:11px;color:#6b7280;margin-top:2px}
+.mob-meeting-card{background:#1b1b2e;border-radius:4px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.mob-meeting-hdr{background:#151526;padding:10px 14px;font-size:12px;font-weight:600;color:rgba(255,255,255,.8);display:flex;align-items:center;gap:6px}
+.mob-meeting-participants{padding:14px;display:flex;gap:8px;flex-wrap:wrap}
+.mob-participant{display:flex;flex-direction:column;align-items:center;gap:4px;width:60px}
+.mob-participant-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff}
+.mob-participant-name{font-size:9px;color:rgba(255,255,255,.6);text-align:center}
+.mob-transcript{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px}
+.mob-tl{animation:slidein .3s ease}
+.mob-tl-who{font-size:10px;font-weight:700;margin-bottom:2px}
+.mob-tl-text{font-size:12px;color:rgba(255,255,255,.8);line-height:1.5}
+.mob-meeting-footer{padding:10px 14px;background:#151526;border-top:1px solid #2a2a4a;display:flex;justify-content:flex-end}
+.mob-meeting-btn{background:#2563eb;color:#fff;border:none;font-size:12px;font-weight:600;padding:8px 16px;border-radius:3px;cursor:pointer}
+.mob-meeting-btn.end{background:#dc2626}
+.mob-daniel{background:#fff;border-radius:4px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.mob-daniel-hdr{background:#f9fafb;border-bottom:1px solid #e5e7eb;padding:10px 14px;font-size:11px;color:#6b7280}
+.mob-daniel-subject{font-size:14px;font-weight:600;color:#111;padding:10px 14px 6px;border-bottom:1px solid #f0f0f0}
+.mob-daniel-body{padding:12px 14px}
+.mob-daniel-q{display:flex;gap:8px;padding:7px 10px;background:#f8f9fa;border-left:2px solid #374151;font-size:13px;color:#111;margin-bottom:5px}
+.mob-debrief{background:#fffef7;border-left:4px solid #1e3a6b;border-radius:0 4px 4px 0;padding:18px 16px;box-shadow:0 4px 24px rgba(0,0,0,.25);animation:slidein .4s ease}
+.mob-db-eyebrow{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;margin-bottom:6px}
+.mob-db-heading{font-size:16px;font-weight:600;color:#1e3a6b;margin-bottom:10px}
+.mob-db-summary{background:#f0f4fa;border-left:3px solid #2d4a7a;padding:9px 11px;font-size:12px;color:#374151;line-height:1.6;margin-bottom:12px}
+.mob-db-body{font-size:13px;line-height:1.75;color:#374151}
+.mob-db-body p{margin-bottom:8px}
+.mob-db-callout{padding:8px 10px;border-left:3px solid #d97706;background:#fffbeb;font-size:12px;line-height:1.6;margin:8px 0}
+.mob-db-callout.good{border-color:#059669;background:#f0fdf4}
+.mob-db-callout.info{border-color:#2563eb;background:#eff6ff}
+.mob-db-reinf{font-size:13px;font-style:italic;color:#1e3a6b;border-top:1px solid #e5e7eb;margin-top:12px;padding-top:12px;line-height:1.75}
+.mob-carry{background:#eff6ff;border:1px solid #dbeafe;padding:12px 14px;margin-top:12px;border-radius:3px}
+.mob-carry-ttl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#2563eb;margin-bottom:8px}
+.mob-carry-item{display:flex;gap:6px;font-size:12px;color:#1f2937;margin-bottom:6px;line-height:1.5}
+.mob-carry-dot{width:5px;height:5px;border-radius:50%;background:#2563eb;flex-shrink:0;margin-top:5px}
+.mob-cont-btn{display:block;width:100%;background:#1e3a6b;color:#fff;font-size:14px;font-weight:500;padding:12px;cursor:pointer;border-radius:2px;border:none;text-align:center;margin-top:12px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef} = React;
+
+/* ── Participants ── */
+const PARTICIPANTS = [
+  {id:'JR',name:'Jamie Rivera',role:'HR Coordinator',color:'#7c3aed'},
+  {id:'ML',name:'Marcus L.',role:'Manager, HR',color:'#4338ca'},
+  {id:'CD',name:'Charles Douglas',role:'Legal Counsel',color:'#1e3a6b'},
+  {id:'AB',name:'Antwan Baker',role:'IT',color:'#b05a2e'},
+];
+
+/* ── Meeting dialogue per Node 1 branch ── */
+const MEETING = {
+  A:[
+    {speaker:'CD',color:'#1e3a6b',text:"Thanks for joining. Jamie — can you walk us through what you have on yesterday's HR Buddy activity?"},
+    {speaker:'JR',color:'#7c3aed',text:"I reconstructed 14 interactions from HelpGate and memory. Some outputs aren't fully recoverable — I remember the questions but not exact word-for-word responses."},
+    {speaker:'CD',color:'#1e3a6b',text:"Is this a system log or a manual reconstruction?"},
+    {speaker:'JR',color:'#7c3aed',text:"A reconstruction."},
+    {speaker:'CD',color:'#1e3a6b',text:"A manual reconstruction isn't an audit trail. It's a best-effort recollection. If this employee's complaint escalates, a reconstruction doesn't meet the evidentiary standard we'd need."},
+    {speaker:'AB',color:'#b05a2e',text:"For context — HR Buddy's API calls are logged at infrastructure level. Timestamps and token counts only. No content of what was processed."},
+    {speaker:'CD',color:'#1e3a6b',text:"So we have a structural compliance gap. HR Buddy processes employee records without content logging configured."},
+    {speaker:'ML',color:'#4338ca',text:"What do we do about it?"},
+    {speaker:'CD',color:'#1e3a6b',text:"HR Buddy's access to employee records is paused until audit logging is configured and verified. General benefits questions from plan PDFs can continue."},
+    {speaker:'AB',color:'#b05a2e',text:"Two days of configuration work. I can start this afternoon."},
+    {speaker:'CD',color:'#1e3a6b',text:"Do it. The gap wasn't created this morning — it was created when HR Buddy was deployed without logging. But we fix it now."},
+  ],
+  B:[
+    {speaker:'CD',color:'#1e3a6b',text:"Marcus briefed me this morning. I appreciate you surfacing this before we sat down, Jamie. That's exactly the right call."},
+    {speaker:'JR',color:'#7c3aed',text:"I wanted you to have the full picture before the meeting, not during it."},
+    {speaker:'CD',color:'#1e3a6b',text:"Let's talk about what MDC's AI deployment process needs to require going forward — that's what this meeting is really about."},
+    {speaker:'ML',color:'#4338ca',text:"What do we put in writing?"},
+    {speaker:'CD',color:'#1e3a6b',text:"New policy: no AI system at MDC accesses employee records without configured audit logging. We draft it this week."},
+    {speaker:'AB',color:'#b05a2e',text:"Content logging can be configured in HR Buddy within two days."},
+    {speaker:'CD',color:'#1e3a6b',text:"HR Buddy is paused for employee record access until that's done. General plan document questions can continue today."},
+    {speaker:'CD',color:'#1e3a6b',text:"Jamie — document what you do have from yesterday as a best-effort reconstruction for the file. And going forward, no AI system touches employee records without a configured audit trail."},
+  ],
+  C:[
+    {speaker:'CD',color:'#1e3a6b',text:"I understand you have something from IT, Jamie?"},
+    {speaker:'JR',color:'#7c3aed',text:"Partial system logging — timestamps and call counts from the API, plus a HelpGate reconstruction. Together they give you more than memory alone, but it's still not a full content record."},
+    {speaker:'AB',color:'#b05a2e',text:"We can confirm 14 API calls between 9am and 4pm yesterday, attributed to Jamie's credentials. Timestamps are system-generated. We can't reproduce the content of those calls."},
+    {speaker:'CD',color:'#1e3a6b',text:"So we have proof the interactions occurred, timestamped, under Jamie's credentials — but not what was processed."},
+    {speaker:'JR',color:'#7c3aed',text:"Right. It's not a full audit trail, but it's more than memory alone."},
+    {speaker:'CD',color:'#1e3a6b',text:"This is better than nothing and it shows good faith effort. It also shows exactly what we need to require going forward: content logging, not just call logging."},
+    {speaker:'CD',color:'#1e3a6b',text:"The instinct to check what logging existed before assuming there was none — that's the right instinct. That's what we need HR to do every time."},
+    {speaker:'CD',color:'#1e3a6b',text:"HR Buddy paused for employee record access until content logging is active."},
+    {speaker:'AB',color:'#b05a2e',text:"Two days."},
+  ],
+};
+
+const MEETING_SUMMARY = {
+  A:'2pm meeting: Legal discovered the audit gap live. HR Buddy paused pending logging configuration. The reconstruction was noted as a best-effort record, not an audit trail.',
+  B:'2pm meeting: Legal arrived already briefed. The conversation shifted from what happened to what MDC\'s AI deployment policy needs to require. HR Buddy paused. New policy drafted.',
+  C:'2pm meeting: The IT system logs plus reconstruction gave Legal more than memory alone. HR Buddy paused pending content logging. Your instinct to check first was noted as the right approach.',
+};
+
+const NODE2_DEBRIEF = {
+  D:{heading:'Branch D — The Direct Response',
+    body:<><p>Your instinct to be transparent with Daniel was right. The content of your email was honest and appropriate. The problem is process, not intent.</p><div className="db-callout">At 6:14pm your manager called: "Legal just contacted me. You sent a direct response to the complainant without Legal review. The content may be accurate but the communication now creates a documented admission of a compliance gap without Legal's language review."</div><p>When an employee complaint involves potential legal exposure, HR communications to that employee become part of the legal record. Legal needs to review them before they're sent — not because honesty is wrong, but because the language used in those communications matters enormously if the situation escalates.</p></>,
+    reinf:'Transparency is the right value. Legal review before communication is the right process. They are not in conflict — they work together.',
+  },
+  E:{heading:'Branch E — Route to Legal First',
+    body:<><p>You recognized that Daniel's email was no longer routine HR correspondence. It was a legal document. Routing it to Legal immediately was the right process.</p><div className="db-callout good">Legal responded: "Thank you for routing this immediately. We'll draft a response for your review tomorrow morning."</div><p>The next morning, Legal sent you a draft. You reviewed it and suggested one addition — a direct acknowledgment that MDC is making changes to its AI deployment process. Legal approved it. The response went to Daniel under your name, with Legal's language.</p><p>Daniel gets honesty. MDC gets the right process. You stay in the communication as the human face of HR.</p></>,
+    reinf:'Routing a complainant\'s communication to Legal isn\'t avoidance — it\'s the correct process when legal exposure is involved. HR and Legal working together on the response is better for everyone than either working alone.',
+  },
+  F:{heading:'Branch F — Acknowledge and Route',
+    body:<><p>You acknowledged Daniel without creating exposure, then immediately routed to Legal. The holding response bought time; the routing brought in the right people.</p><div className="db-callout good">Legal responded: "Good instinct on the holding response. Three business days is appropriate. We'll draft the full response together tomorrow. One note: next time, route to us before sending even the holding response so we can review the language."</div><p>The one refinement Legal flagged — route even holding responses for review before sending — is a process detail that matters. Even a timeline commitment becomes part of the record.</p></>,
+    reinf:"A holding response buys time without creating exposure — but in situations involving legal complaints, even a holding response benefits from Legal review before it's sent. The sequence is: route first, send second.",
+  },
+};
+
+/* ── HR Buddy crystal icon ── */
+function HRBuddyIcon({size=22}){
+  return(
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <polygon points="20,2 34,10 34,30 20,38 6,30 6,10" fill="#e8f0fe"/>
+      <polygon points="20,2 34,10 20,18" fill="#4f83cc"/>
+      <polygon points="34,10 34,30 20,18" fill="#2563eb"/>
+      <polygon points="34,30 20,38 20,18" fill="#1d4ed8"/>
+      <polygon points="20,38 6,30 20,18" fill="#7c3aed"/>
+      <polygon points="6,30 6,10 20,18" fill="#c084fc"/>
+      <polygon points="6,10 20,2 20,18" fill="#fb923c"/>
+    </svg>
+  );
+}
+
+function TBar({title,icoColor='#1e3a6b',bg='#f3f4f6',tc='#1f2937',bc='#555'}){
+  return(
+    <div className="tbar" style={{background:bg,borderBottom:`1px solid ${bg==='#f3f4f6'?'#d1d5db':'rgba(0,0,0,0.25)'}`}}>
+      <div className="tbar-ico" style={{background:icoColor,opacity:.9}}/>
+      <div className="tbar-ttl" style={{color:tc}}>{title}</div>
+      <div className="tbar-btns">
+        <div className="tbb" style={{color:bc}}>─</div><div className="tbb" style={{color:bc}}>□</div><div className="tbb cl" style={{color:bc}}>✕</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Transition screen ── */
+function TransitionScreen({onDone}){
+  const [phase,setPhase]=useState(0); // 0=from 1=to 2=title
+  useEffect(()=>{
+    const t1=setTimeout(()=>setPhase(1),1500);
+    const t2=setTimeout(()=>setPhase(2),2800);
+    const t3=setTimeout(onDone,4500);
+    return()=>{clearTimeout(t1);clearTimeout(t2);clearTimeout(t3)};
+  },[]);
+  return(
+    <div className="transition-screen" onClick={onDone}>
+      <div style={{textAlign:'center'}}>
+        <div className="tr-from">{phase<1?'Tue, Oct 14':'End of day · Unit 1 complete'}</div>
+        <div className="tr-date" style={{opacity:phase===0?1:phase===1?0:0,transition:'all .6s ease',position:phase>0?'absolute':'relative',transform:phase>0?'translateY(-20px)':'none'}}>
+          Tue, Oct 14
+        </div>
+        {phase>=1&&(
+          <div className="tr-date in" style={{color:'#e2e8f0'}}>
+            Wed, Oct 15
+          </div>
+        )}
+        <div className="tr-time" style={{opacity:phase>=1?1:0,transition:'opacity .6s ease .3s'}}>
+          7:52 AM
+        </div>
+      </div>
+      <div className="tr-divider" style={{opacity:phase>=2?1:0,transition:'opacity .5s ease'}}/>
+      {phase>=2&&(
+        <div style={{textAlign:'center',animation:'fadein .6s ease'}}>
+          <div className="tr-unit">Unit 2 of 3</div>
+          <div className="tr-title">The Consent Problem</div>
+        </div>
+      )}
+      <div className="tr-skip" style={{opacity:phase>=2?1:.3,transition:'opacity .5s'}}>Click anywhere to continue</div>
+    </div>
+  );
+}
+
+/* ── Teams window ── */
+function TeamsWin({dimCls}){
+  return(
+    <div className={`win ${dimCls}`} style={{left:10,top:30,width:480,height:520,zIndex:20}}>
+      <TBar title="Microsoft Teams" icoColor="#5c5f9c"/>
+      <div className="teams-layout">
+        <div className="teams-sidebar">
+          {[{l:'🔔',n:'Activity'},{l:'💬',n:'Chat',act:true},{l:'👥',n:'Teams'},{l:'📅',n:'Calendar',badge:1},{l:'📞',n:'Calls'},{l:'📁',n:'Files'}].map((s,i)=>(
+            <div key={i} className={`ts-item ${s.act?'act':''}`} title={s.n}>
+              <span style={{fontSize:14}}>{s.l}</span><span>{s.n}</span>
+              {s.badge&&<div className="ts-badge">{s.badge}</div>}
+            </div>
+          ))}
+        </div>
+        <div className="teams-panel">
+          <div style={{padding:'7px 10px',fontSize:13,fontWeight:600,color:'#111',borderBottom:'1px solid #e1dfdd'}}>Chat</div>
+          <div style={{margin:'5px 8px',background:'#fff',border:'1px solid #d1d1d1',padding:'4px 8px',fontSize:11,color:'#666',borderRadius:3}}>🔍 Search</div>
+          <div>
+            {[
+              {init:'HR',c:'#dc2626',name:'HR Team Chat',time:'8:11 AM',preview:'Marcus L.: Before the 2pm call…',unread:1,active:true},
+              {init:'ML',c:'#4338ca',name:'Marcus L., Manager',time:'8:11 AM',preview:'Before the 2pm call — Legal wants…'},
+              {init:'IT',c:'#b05a2e',name:'IT Support',time:'Yesterday',preview:'Good question. HR Buddy runs on…'},
+            ].map((c,i)=>(
+              <div key={i} className={`tc-row ${c.active?'active':''}`}>
+                <div className="tc-avatar" style={{background:c.c}}>{c.init}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div className="tc-name">{c.name}<span className="tc-time-sm">{c.time}</span></div>
+                  <div className="tc-preview">{c.preview}</div>
+                </div>
+                {c.unread&&<div className="tc-unread">1</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="teams-chat">
+          <div className="tc-chat-hdr">
+            <div style={{width:24,height:24,borderRadius:'50%',background:'#dc2626',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#fff',flexShrink:0}}>HR</div>
+            <div style={{fontSize:13,fontWeight:600,color:'#111'}}>HR Team Chat</div>
+            <div style={{marginLeft:'auto',fontSize:12,color:'#aaa'}}>🔍 ⚙</div>
+          </div>
+          <div className="tc-body">
+            <div className="tc-day">Today · Wed, Oct 15</div>
+            {/* Calendar invite */}
+            <div style={{fontSize:11,color:'#888',display:'flex',gap:6,alignItems:'flex-start'}}>
+              <span>📅</span>
+              <div className="tc-cal-invite">
+                <div className="tc-cal-title">HR Buddy Pilot Review — Jamie, Legal, IT</div>
+                <div className="tc-cal-meta">Today · 2:00 PM – 3:00 PM · Teams meeting</div>
+                <div className="tc-cal-meta" style={{marginTop:3,color:'#dc2626',fontWeight:600}}>⚑ You are required to attend</div>
+              </div>
+            </div>
+            {/* Manager message */}
+            <div className="tc-msg">
+              <div className="tc-msg-av" style={{background:'#4338ca'}}>ML</div>
+              <div style={{flex:1}}>
+                <span className="tc-msg-who">Marcus L., Manager, HR</span><span className="tc-msg-when">8:11 AM</span>
+                <div className="tc-bubble key">Before the 2pm call — Legal wants to know exactly what HR Buddy accessed yesterday and what it output. Can you pull that together?</div>
+              </div>
+            </div>
+          </div>
+          <div className="tc-input-area"><div className="tc-input-box"><span style={{color:'#aaa',fontSize:12}}>Type a message</span><span style={{marginLeft:'auto',color:'#aaa'}}>⊕ 📎 😊</span></div></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── HelpGate ── */
+function HelpGateWin({dimCls}){
+  const tickets=[
+    {id:'#90231',name:'HDHP vs PPO — which plan is better for my family?',status:'N'},
+    {id:'#90232',name:'HSA contribution limits for 2026?',status:'N'},
+    {id:'#90233',name:'Dental coverage — is orthodontia included?',status:'N'},
+    {id:'#90235',name:'Enrollment deadline — can I change after Friday?',status:'N'},
+    {id:'#90236',name:'Dependent verification docs — where to upload?',status:'O'},
+    {id:'#90237',name:'Premium tier question — family vs employee+spouse',status:'O'},
+    {id:'#90238',name:'FSA rollover rules for 2026',status:'O'},
+  ];
+  return(
+    <div className={`win top ${dimCls}`} style={{left:355,top:16,width:340,height:320,zIndex:28}}>
+      <TBar title="HelpGate" icoColor="#7a1e2e" bg="#7a1e2e" tc="#fff" bc="rgba(255,255,255,0.75)"/>
+      <div className="hg-subnav"><span>Tickets</span><span>Release</span><span>Schedules</span><span>HelpGate</span></div>
+      <div className="hg-filter-row">
+        <div className="hg-srch">🔍 OE Benefits Questions</div>
+        <div className="hg-filter-btn">Filter</div>
+      </div>
+      <div className="hg-thead"><div/><div>Ticket</div><div>Status</div></div>
+      <div className="hg-rows">
+        {tickets.map((t,i)=>(
+          <div key={i} className="hg-row">
+            <div className="hg-chk"/>
+            <div style={{fontSize:10,color:'#333',lineHeight:1.2}}>{t.id}: {t.name}</div>
+            <div><span className={`hg-pill ${t.status}`}>{t.status==='N'?'New':t.status==='O'?'Open':'Pending'}</span></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── HR Buddy sidebar ── */
+function HRBuddySidebar({dimCls}){
+  return(
+    <div className={`hrb-dock ${dimCls}`}>
+      <div className="hrb-tbar">
+        <HRBuddyIcon size={15}/><div className="hrb-tbar-title">HR Buddy</div>
+        <div className="hrb-tbar-btns"><span>···</span><span>✕</span></div>
+      </div>
+      <div className="hrb-body">
+        <div className="hrb-badge">HR Buddy</div>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}><HRBuddyIcon size={32}/><div style={{fontSize:15,fontWeight:700,color:'#111'}}>HR Buddy</div></div>
+        <div className="hrb-bubble">General benefits questions are available. Employee record access is paused pending system review.</div>
+        <div className="hrb-restricted">
+          <span style={{fontSize:14,flexShrink:0}}>⚠</span>
+          <div><strong>Employee record access restricted.</strong> Upload plan documents to answer general benefits questions. Contact IT for status on audit logging configuration.</div>
+        </div>
+      </div>
+      <div className="hrb-footer">
+        <div className="hrb-inp-wrap"><div className="hrb-inp">Type a message...</div><span style={{color:'#6b7280',fontSize:13}}>🎤</span></div>
+        <div style={{display:'flex',justifyContent:'space-between',padding:'3px 2px 0',fontSize:12,color:'#aaa'}}><span>😊</span><span style={{color:'#93c5fd',fontSize:16}}>→</span></div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Carry-forward notes card ── */
+function CFCard({dimCls}){
+  return(
+    <div className={`cf-card ${dimCls}`} style={{left:660,top:300}}>
+      <div className="cf-card-ttl">From yesterday · Unit 1</div>
+      {['HR Buddy has no automatic audit trail in current pilot.','An employee asked whether AI accessed their records.','Legal is now involved. 2pm review today.'].map((c,i)=>(
+        <div key={i} className="cf-item"><div className="cf-dot"/>{c}</div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Toast notifications ── */
+function Toasts({dimCls}){
+  return(
+    <div className={`toast-zone ${dimCls}`}>
+      <div className="toast-card" style={{borderLeft:'2px solid #2563eb'}}>
+        <div className="toast-app-row"><div className="toast-app-ico" style={{background:'#0078d4'}}/><div className="toast-app-name">Outlook · Calendar</div><div className="toast-x">✕</div></div>
+        <div className="toast-msg">[URGENT] HR Buddy Pilot Review — 2pm today · Legal, IT, Jamie</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Taskbar ── */
+const TB_APPS=[{l:'T',c:'#5c5f9c',act:true},{l:'⊞',c:'#4f4f4f'},{l:'e',c:'#0078d4'},{l:'W',c:'#2b579a'},{l:'X',c:'#217346'},{l:'P',c:'#b7472a'},{l:'A',c:'#dc2626'}];
+function Taskbar({time}){
+  return(
+    <div className="taskbar">
+      <div className="tb-start"><img src="assets/mdc-logo.png" style={{width:24,height:24}} alt="MDC"/></div>
+      <div className="tb-search">🔍 <span>Type here to search</span></div>
+      <div className="tb-apps">{TB_APPS.map((a,i)=><div key={i} className={`tb-app ${a.act?'act':''}`}><div style={{width:22,height:22,borderRadius:3,background:a.c,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:11,fontWeight:700}}>{a.l}</div></div>)}</div>
+      <div className="tb-tray">
+        <span style={{color:'rgba(255,255,255,.4)',fontSize:10}}>▲</span>
+        <span style={{color:'rgba(255,255,255,.2)',fontSize:18}}>|</span>
+        <div className="tb-time"><div style={{fontWeight:500}}>{time}</div><div style={{fontSize:10,opacity:.65}}>Wed, Oct 15</div></div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Node 1 decision overlay ── */
+function Node1Overlay({onChoose}){
+  const opts=[
+    {k:'A',cls:'a',icon:'📋',main:'Reconstruct from HelpGate and memory — document the 14 interactions as accurately as you can before the meeting.',sub:'Pull tickets, cross-reference what you remember, build a record'},
+    {k:'B',cls:'b',icon:'💬',main:"Tell your manager immediately there is no audit log — surface the gap before the 2pm meeting rather than arriving with a reconstruction.",sub:'Message Marcus now, before doing anything else'},
+    {k:'C',cls:'c',icon:'🔧',main:'Contact IT before doing anything else — find out whether any system-level logging exists before you conclude there\'s no record.',sub:'Ask what logging exists at the infrastructure level'},
+  ];
+  return(
+    <div className="overlay">
+      <div className="decision-card">
+        <div className="dec-context">7:52 AM — You have six hours before the 2pm Legal review.</div>
+        <div className="dec-title">What do you do?</div>
+        <div className="dec-tiles">
+          {opts.map(o=>(
+            <div key={o.k} className={`d-tile ${o.cls}`} onClick={()=>onChoose(o.k)}>
+              <div className="d-tile__icon">{o.icon}</div>
+              <div className="d-tile__key">{o.k}</div>
+              <div><div className="d-tile__main">{o.main}</div><div className="d-tile__sub">{o.sub}</div></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Teams meeting ── */
+function TeamsMeeting({node1Choice,onDone}){
+  const [lineIdx,setLineIdx]=useState(0);
+  const dialogue=MEETING[node1Choice]||[];
+  const shown=dialogue.slice(0,lineIdx+1);
+  const isLast=lineIdx>=dialogue.length-1;
+  function advance(){if(!isLast)setLineIdx(i=>i+1);}
+  const speakerMap={JR:PARTICIPANTS[0],ML:PARTICIPANTS[1],CD:PARTICIPANTS[2],AB:PARTICIPANTS[3]};
+  const currentSpeaker=dialogue[lineIdx]?.speaker;
+  return(
+    <div className="meeting-overlay" onClick={!isLast?advance:undefined}>
+      <div className="meeting-window" onClick={e=>e.stopPropagation()}>
+        <div className="meeting-titlebar">
+          <div style={{width:8,height:8,borderRadius:'50%',background:'#ef4444',flexShrink:0}}/>
+          <div className="meeting-title-txt">HR Buddy Pilot Review — Teams Meeting · 2:00 PM</div>
+          <div className="meeting-controls">
+            {['🎤','📹','⋯'].map((c,i)=><div key={i} className="meeting-ctrl">{c}</div>)}
+          </div>
+        </div>
+        <div className="meeting-body">
+          <div className="meeting-participants">
+            {PARTICIPANTS.map(p=>(
+              <div key={p.id} className={`participant-tile ${currentSpeaker===p.id?'speaking':''}`}>
+                <div className="participant-av" style={{background:p.color}}>{p.id}</div>
+                <div className="participant-name">{p.name}</div>
+                <div className="participant-role">{p.role}</div>
+              </div>
+            ))}
+          </div>
+          <div className="meeting-transcript">
+            <div className="transcript-hdr">Meeting Transcript</div>
+            <div className="transcript-body">
+              {shown.map((l,i)=>{
+                const p=speakerMap[l.speaker];
+                return(
+                  <div key={i} className="transcript-line">
+                    <div className="tl-who" style={{color:l.color}}>{p?.name||l.speaker}</div>
+                    <div className="tl-text">"{l.text}"</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="meeting-footer">
+          <div className="meeting-status">
+            {isLast?'Meeting concluded':'Click anywhere to advance →'}
+          </div>
+          {!isLast&&<button className="meeting-btn" onClick={advance}>Next →</button>}
+          {isLast&&<button className="meeting-btn end" onClick={onDone}>End meeting →</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Daniel's email card ── */
+function DanielCard({onChoose}){
+  const opts=[
+    {k:'D',cls:'d',main:"Answer Daniel's questions directly — confirm HR Buddy was used, describe what data it accessed, acknowledge consent wasn't obtained.",sub:'Write and send a full direct response now'},
+    {k:'E',cls:'e',main:'Forward to Legal and wait for guidance — this is now a legal matter and you shouldn\'t communicate directly without Legal\'s sign-off.',sub:'Route to Legal before responding'},
+    {k:'F',cls:'f',main:"Send a holding response — acknowledge his email, commit to a full response within three business days, then route to Legal.",sub:'Acknowledge now, coordinate the full response with Legal'},
+  ];
+  return(
+    <div className="eod-overlay">
+      <div className="daniel-card-wrap">
+        <div className="dec-context-eod">4:47 PM · The 2pm meeting is done. An email arrives in HelpGate.</div>
+        <div className="daniel-card">
+          <div className="daniel-card-hdr">
+            <div style={{background:'#7a1e2e',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:2}}>HelpGate</div>
+            <div className="daniel-system">New Message</div>
+            <div className="daniel-from">From: Daniel M. · Employee</div>
+          </div>
+          <div className="daniel-subject">My personal records and the AI system</div>
+          <div className="daniel-body">
+            <div style={{marginBottom:10,fontSize:13,color:'#374151'}}>I have three questions I need answered.</div>
+            <div className="daniel-questions">
+              <div className="daniel-q"><div className="daniel-q-num">1.</div>Did an AI system access my personal records yesterday?</div>
+              <div className="daniel-q"><div className="daniel-q-num">2.</div>What exactly did it access?</div>
+              <div className="daniel-q"><div className="daniel-q-num">3.</div>Did I consent to that?</div>
+            </div>
+          </div>
+        </div>
+        <div className="d-tile-wrap">
+          <div className="d-tile-prompt">What do you say?</div>
+          <div className="dec-tiles">
+            {opts.map(o=>(
+              <div key={o.k} className={`d-tile ${o.cls}`} onClick={()=>onChoose(o.k)}>
+                <div className="d-tile__key">{o.k}</div>
+                <div><div className="d-tile__main">{o.main}</div><div className="d-tile__sub">{o.sub}</div></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Debrief ── */
+function DebriefPanel({node1Choice,node2Choice,onReset}){
+  const d=NODE2_DEBRIEF[node2Choice];
+  const summary=MEETING_SUMMARY[node1Choice];
+  if(!d)return null;
+  return(
+    <div className="debrief-overlay">
+      <div className="debrief-card">
+        <div className="db-eyebrow">What just happened · Unit 2 of 3</div>
+        <div className="db-heading">{d.heading}</div>
+        {summary&&<div className="db-meeting-summary"><strong>At the 2pm meeting:</strong> {summary}</div>}
+        <div className="db-body">{d.body}</div>
+        <div className="db-reinf">{d.reinf}</div>
+        <div className="db-closing">
+          <p><strong>Three things this unit was building:</strong></p>
+          <p>A reconstruction is not a record. An audit trail has to be built into the system before it processes employee data — not assembled after something goes wrong.</p>
+          <p>Transparency and legal process are not opposites. The instinct to be honest with Daniel is right. The process that makes that honesty safe and defensible is Legal review before the communication reaches him.</p>
+          <p>The complaint is an asset. Daniel's three questions created MDC's new AI deployment policy. A complaint handled with transparency and process integrity often produces better organizational outcomes than its absence.</p>
+        </div>
+        <div className="carry">
+          <div className="carry-ttl">Three things to carry into Unit 3</div>
+          {['MDC now has a policy: no AI system accesses employee records without configured audit logging.','HR Buddy resumes restricted use. Audit logging goes live in two days.','A termination workflow review is scheduled for next week. It runs through HR Buddy.'].map((c,i)=>(
+            <div key={i} className="carry-item"><div className="carry-dot"/>{c}</div>
+          ))}
+        </div>
+        <button className="cont-btn" onClick={()=>window.location.href='unit3.html'}>Continue to Unit 3 →</button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Mobile Layout ── */
+function MobileLayout({screen,node1Choice,node2Choice,dialogueIdx,onBeginDecide,onNode1Choose,onAdvanceMeeting,onEndMeeting,onNode2Choose,onReset}){
+  const dialogue=node1Choice?MEETING[node1Choice]:[];
+  const shown=dialogue.slice(0,dialogueIdx+1);
+  const isLastLine=dialogueIdx>=dialogue.length-1;
+  const speakerMap={JR:PARTICIPANTS[0],ML:PARTICIPANTS[1],CD:PARTICIPANTS[2],AB:PARTICIPANTS[3]};
+  const csq=node1Choice?MEETING_SUMMARY[node1Choice]:null;
+  const db=node2Choice?NODE2_DEBRIEF[node2Choice]:null;
+  const clockTime=screen==='meeting'||screen==='daniel'||screen==='debrief'?(node1Choice==='A'?'2:00 PM':node1Choice==='B'?'2:00 PM':'2:00 PM'):'7:52 AM';
+  const isEod=screen==='daniel'||screen==='debrief';
+
+  return(
+    <div className="mob-root">
+      <div className="mob-hdr" style={{background:isEod?'#070c18':'#0d1117',transition:'background 1s'}}>
+        <img src="assets/mdc-logo.png" style={{width:22,height:22,flexShrink:0}} alt="MDC"/>
+        <div className="mob-hdr-title">Unit 2 of 3 — The Consent Problem</div>
+        <div className="mob-prog-dots" style={{marginRight:8}}>
+          <div className="mob-prog-dot on"/>
+          <div className={`mob-prog-dot ${screen!=='scene'&&screen!=='deciding1'?'on':''}`}/>
+          <div className={`mob-prog-dot ${isEod?'on':''}`}/>
+        </div>
+        <div className="mob-hdr-time">{isEod?'4:47 PM':screen==='meeting'?'2:00 PM':'7:52 AM'}</div>
+      </div>
+      <div className="mob-body">
+
+        {/* Scene / Deciding1 */}
+        {(screen==='scene'||screen==='deciding1')&&(<>
+          <div className="mob-label">HR Team Chat · 8:11 AM</div>
+          <div className="mob-card">
+            <div className="mob-card-hdr" style={{background:'#201f42',color:'#fff'}}>
+              <div style={{width:18,height:18,borderRadius:'50%',background:'#dc2626',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,color:'#fff'}}>HR</div>
+              HR Team Chat · Wed, Oct 15
+            </div>
+            <div className="mob-msg">
+              <div className="mob-av" style={{background:'#4338ca'}}>ML</div>
+              <div style={{flex:1}}>
+                <span className="mob-msg-who">Marcus L., Manager, HR</span><span className="mob-msg-when">8:11 AM</span>
+                <div className="mob-bubble key">Before the 2pm call — Legal wants to know exactly what HR Buddy accessed yesterday and what it output. Can you pull that together?</div>
+              </div>
+            </div>
+            <div style={{padding:'8px 12px',background:'#f0f5ff',borderTop:'1px solid #e5e7eb',display:'flex',gap:6,alignItems:'flex-start'}}>
+              <span style={{fontSize:12}}>📅</span>
+              <div>
+                <div style={{fontSize:11,fontWeight:600,color:'#1e3a6b'}}>HR Buddy Pilot Review — Jamie, Legal, IT</div>
+                <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>Today · 2:00 PM · Required attendance</div>
+              </div>
+            </div>
+          </div>
+          <div className="mob-cf-card">
+            <div className="mob-cf-ttl">Carried from Unit 1</div>
+            {['HR Buddy has no automatic audit trail in current pilot.','An employee asked whether AI accessed their records.','Legal is now involved — 2pm review today.'].map((c,i)=>(
+              <div key={i} className="mob-cf-item"><div className="mob-cf-dot"/>{c}</div>
+            ))}
+          </div>
+          {screen==='scene'&&<button style={{background:'#2563eb',color:'#fff',border:'none',fontSize:14,fontWeight:600,padding:'13px',borderRadius:4,cursor:'pointer'}} onClick={onBeginDecide}>What do you do? →</button>}
+          {screen==='deciding1'&&(
+            <>
+              <div className="mob-dec-prompt-txt">It's 7:52 AM. You have six hours before the 2pm Legal review. Legal wants to know exactly what HR Buddy accessed yesterday and what it output.<br/><br/>You already know the answer: HR Buddy has no automatic audit log. Whatever it did with those 14 employee queries isn't captured anywhere unless you manually recorded it. You didn't.</div>
+              <div className="mob-d-tiles">
+                {[
+                  {k:'A',cls:'a',main:'Reconstruct from HelpGate and memory.',sub:'Document the 14 interactions before the meeting'},
+                  {k:'B',cls:'b',main:'Tell your manager immediately there is no log.',sub:'Surface the gap before the 2pm meeting'},
+                  {k:'C',cls:'c',main:'Contact IT before doing anything else.',sub:'Find out what logging exists first'},
+                ].map(o=>(
+                  <div key={o.k} className={`mob-d-tile ${o.cls}`} onClick={()=>onNode1Choose(o.k)}>
+                    <div className="mob-d-tile__key">{o.k}</div>
+                    <div><div className="mob-d-tile__main">{o.main}</div><div className="mob-d-tile__sub">{o.sub}</div></div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>)}
+
+        {/* Meeting */}
+        {screen==='meeting'&&node1Choice&&(
+          <div className="mob-meeting-card">
+            <div className="mob-meeting-hdr">📹 HR Buddy Pilot Review · 2:00 PM</div>
+            <div className="mob-meeting-participants">
+              {PARTICIPANTS.map(p=>(
+                <div key={p.id} className="mob-participant">
+                  <div className="mob-participant-av" style={{background:p.color,border:shown[shown.length-1]?.speaker===p.id?'2px solid #2563eb':'2px solid transparent'}}>{p.id}</div>
+                  <div className="mob-participant-name">{p.name.split(' ')[0]}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mob-transcript">
+              {shown.map((l,i)=>{
+                const p=speakerMap[l.speaker];
+                return(
+                  <div key={i} className="mob-tl">
+                    <div className="mob-tl-who" style={{color:l.color}}>{p?.name||l.speaker}</div>
+                    <div className="mob-tl-text">"{l.text}"</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mob-meeting-footer">
+              {!isLastLine&&<button className="mob-meeting-btn" onClick={onAdvanceMeeting}>Next →</button>}
+              {isLastLine&&<button className="mob-meeting-btn end" onClick={onEndMeeting}>End meeting →</button>}
+            </div>
+          </div>
+        )}
+
+        {/* Daniel's email */}
+        {screen==='daniel'&&(
+          <>
+            <div className="mob-label">HelpGate · New message · 4:47 PM</div>
+            <div className="mob-daniel">
+              <div className="mob-daniel-hdr">From: Daniel M. · Employee — Subject: My personal records and the AI system</div>
+              <div className="mob-daniel-body">
+                <div style={{fontSize:13,color:'#374151',marginBottom:10}}>I have three questions I need answered.</div>
+                {[
+                  'Did an AI system access my personal records yesterday?',
+                  'What exactly did it access?',
+                  'Did I consent to that?',
+                ].map((q,i)=><div key={i} className="mob-daniel-q"><strong>{i+1}.</strong>{q}</div>)}
+              </div>
+            </div>
+            <div className="mob-d-tiles">
+              {[
+                {k:'D',cls:'d',main:"Answer Daniel directly.",sub:'Write and send a full response now'},
+                {k:'E',cls:'e',main:'Forward to Legal and wait.',sub:'Route before responding'},
+                {k:'F',cls:'f',main:'Send a holding response, then route to Legal.',sub:'Acknowledge now, coordinate the full reply'},
+              ].map(o=>(
+                <div key={o.k} className={`mob-d-tile ${o.cls}`} onClick={()=>onNode2Choose(o.k)}>
+                  <div className="mob-d-tile__key">{o.k}</div>
+                  <div><div className="mob-d-tile__main">{o.main}</div><div className="mob-d-tile__sub">{o.sub}</div></div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Debrief */}
+        {screen==='debrief'&&db&&(
+          <div className="mob-debrief">
+            <div className="mob-db-eyebrow">What just happened · Unit 2 of 3</div>
+            <div className="mob-db-heading">{db.heading}</div>
+            {csq&&<div className="mob-db-summary"><strong>At the 2pm meeting:</strong> {csq}</div>}
+            <div className="mob-db-body">{db.body}</div>
+            <div className="mob-db-reinf">{db.reinf}</div>
+            <div className="mob-carry">
+              <div className="mob-carry-ttl">Three things to carry into Unit 3</div>
+              {['MDC now has a policy: no AI system accesses employee records without configured audit logging.','HR Buddy resumes restricted use. Audit logging goes live in two days.','A termination workflow review is scheduled for next week. It runs through HR Buddy.'].map((c,i)=>(
+                <div key={i} className="mob-carry-item"><div className="mob-carry-dot"/>{c}</div>
+              ))}
+            </div>
+            <button className="mob-cont-btn" onClick={()=>window.location.href='unit3.html'}>Continue to Unit 3 →</button>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+/* ── App ── */
+function App(){
+  const [screen,setScreen]=useState('transition');
+  const [node1Choice,setNode1Choice]=useState(null);
+  const [node2Choice,setNode2Choice]=useState(null);
+  const [dialogueIdx,setDialogueIdx]=useState(0);
+  const [isMobile,setIsMobile]=useState(()=>window.innerWidth<=768);
+  const stageRef=useRef(null);
+  const deskRef=useRef(null);
+
+  useEffect(()=>{
+    function scale(){
+      if(!stageRef.current||!deskRef.current)return;
+      const s=Math.min(stageRef.current.clientWidth/1440,stageRef.current.clientHeight/900);
+      deskRef.current.style.transform=`scale(${s})`;
+    }
+    function checkMobile(){setIsMobile(window.innerWidth<=768)}
+    scale();checkMobile();
+    window.addEventListener('resize',scale);window.addEventListener('resize',checkMobile);
+    return()=>{window.removeEventListener('resize',scale);window.removeEventListener('resize',checkMobile)};
+  },[]);
+
+  function handleNode1Choose(k){setNode1Choice(k);setDialogueIdx(0);setScreen('meeting')}
+  function handleAdvanceMeeting(){const d=MEETING[node1Choice];if(dialogueIdx<d.length-1)setDialogueIdx(i=>i+1)}
+  function handleEndMeeting(){setScreen('daniel')}
+  function handleNode2Choose(k){setNode2Choice(k);setScreen('debrief')}
+  function handleReset(){setScreen('scene');setNode1Choice(null);setNode2Choice(null);setDialogueIdx(0)}
+
+  const isEod=screen==='daniel'||screen==='debrief';
+  const dimCls=screen==='deciding1'?'dimmed':isEod?'eod-dim':'';
+  const clockTime=screen==='meeting'?'2:00 PM':isEod?'4:47 PM':'7:52 AM';
+
+  if(isMobile&&screen!=='transition'&&screen!=='opening'){
+    return(
+      <div className="stage" ref={stageRef}>
+        <MobileLayout
+          screen={screen} node1Choice={node1Choice} node2Choice={node2Choice} dialogueIdx={dialogueIdx}
+          onBeginDecide={()=>setScreen('deciding1')} onNode1Choose={handleNode1Choose}
+          onAdvanceMeeting={handleAdvanceMeeting} onEndMeeting={handleEndMeeting}
+          onNode2Choose={handleNode2Choose} onReset={handleReset}
+        />
+      </div>
+    );
+  }
+
+  return(
+    <div className="stage" ref={stageRef}>
+      {/* ── OPENING SCREEN ── */}
+      {screen==='opening'&&(
+        <div className="opening-screen">
+          <div className="opening-card">
+            <div className="op-eyebrow">Unit 2 of 3 — The Consent Problem</div>
+            <div className="op-body">
+              <p>It's October 15th. 7:52am.</p>
+              <p>You are Jamie, an HR Coordinator at Meridian Dynamics Corporation. You got in early.</p>
+              <p>Yesterday's legal call is sitting in your inbox as a calendar invite: <em>"HR Buddy Pilot Review — Jamie, Legal, IT — 2pm today."</em> You have six hours before that meeting and a full morning of enrollment questions already building in HelpGate.</p>
+              <p>At 8:11am, a Slack message arrives from your manager:</p>
+            </div>
+            <div className="op-quote">"Before the 2pm call — Legal wants to know exactly what HR Buddy accessed yesterday and what it output. Can you pull that together?"</div>
+            <div className="op-body">
+              <p>You open HR Buddy. You open HelpGate. You open CorePeople360.</p>
+              <p>You already know the answer before you start looking: HR Buddy has no automatic audit log in the current pilot. IT confirmed that yesterday. Whatever HR Buddy did with those 14 employee queries isn't captured anywhere unless you manually recorded it.</p>
+              <p>You didn't.</p>
+              <p>Your manager is waiting. Legal is waiting. And somewhere in MDC's 28,000 employees, one person filed a complaint because they wanted to know if AI touched their records.</p>
+            </div>
+            <div className="op-cta">What do you do in the next six hours before the 2pm meeting?</div>
+            <button className="op-btn" onClick={()=>setScreen('scene')}>Enter the scenario →</button>
+          </div>
+        </div>
+      )}
+      <div className={`desktop ${isEod?'eod':''}`} ref={deskRef}>
+
+        {/* Transition */}
+        {screen==='transition'&&<TransitionScreen onDone={()=>setScreen('opening')}/>}
+
+        {/* Progress bar */}
+        <div className="prog">
+          <img src="assets/mdc-logo.png" style={{width:18,height:18,opacity:.9,flexShrink:0}} alt="MDC"/>
+          <div className="prog-txt">Unit 2 of 3 — The Consent Problem</div>
+          <div className="prog-dots">
+            <div className="prog-dot done" title="Unit 1 complete"/>
+            <div className="prog-dot on"/>
+            <div className="prog-dot"/>
+          </div>
+        </div>
+
+        {/* Desktop elements — always visible but may dim */}
+        <TeamsWin dimCls={dimCls}/>
+        <HelpGateWin dimCls={dimCls}/>
+        <CFCard dimCls={dimCls}/>
+        <HRBuddySidebar dimCls={screen==='meeting'||isEod?'eod-dim':''}/>
+        <Toasts dimCls={dimCls}/>
+
+        {/* Recycle bin */}
+        <div style={{position:'absolute',top:34,left:10,display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:5,borderRadius:3,cursor:'pointer',opacity:dimCls?'.15':'1',transition:'opacity .5s',pointerEvents:dimCls?'none':'auto'}}>
+          <div style={{fontSize:20}}>🗑</div>
+          <div style={{fontSize:9,color:'rgba(255,255,255,.8)',textShadow:'0 1px 2px rgba(0,0,0,.6)'}}>Recycle Bin</div>
+        </div>
+
+        <Taskbar time={clockTime}/>
+
+        {/* Overlays */}
+        {screen==='deciding1'&&<Node1Overlay onChoose={handleNode1Choose}/>}
+        {screen==='meeting'&&node1Choice&&<TeamsMeeting node1Choice={node1Choice} onDone={handleEndMeeting}/>}
+        {(screen==='daniel'||screen==='debrief')&&screen==='daniel'&&<DanielCard onChoose={handleNode2Choose}/>}
+        {screen==='debrief'&&<DebriefPanel node1Choice={node1Choice} node2Choice={node2Choice} onReset={handleReset}/>}
+
+        {/* Scene CTA */}
+        {screen==='scene'&&(
+          <div style={{position:'absolute',bottom:60,left:'50%',transform:'translateX(-50%)',zIndex:50}}>
+            <button onClick={()=>setScreen('deciding1')} style={{background:'#2563eb',color:'#fff',border:'none',fontSize:13,fontWeight:600,padding:'10px 24px',borderRadius:3,cursor:'pointer',boxShadow:'0 4px 16px rgba(37,99,235,.4)'}}>
+              What do you do? →
+            </button>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

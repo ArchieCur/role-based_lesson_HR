@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MDC HR Buddy — Unit 1: The Morning Message</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{width:100%;height:100%;overflow:hidden;background:#000}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.stage{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
+.desktop{width:1440px;height:900px;background:#1e3a6b;position:relative;overflow:hidden;transform-origin:center center;transition:background 1.2s ease}
+.desktop.eod{background:#111e35}
+
+/* Progress */
+.prog{position:absolute;top:0;left:0;right:0;height:26px;background:rgba(0,0,0,0.4);display:flex;align-items:center;padding:0 14px;z-index:90;gap:8px}
+.prog-txt{font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:.04em}
+.prog-dots{display:flex;gap:5px}
+.prog-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);transition:background .5s}
+.prog-dot.on{background:#fff}
+.prog-dot.done{background:#2563eb}
+
+/* Taskbar */
+.taskbar{position:absolute;bottom:0;left:0;right:0;height:44px;background:#0d1117;display:flex;align-items:center;padding:0 6px;z-index:80;border-top:1px solid #1e293b}
+.tb-start{width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px}
+.tb-start:hover{background:rgba(255,255,255,0.08)}
+.tb-search{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:4px;height:28px;display:flex;align-items:center;padding:0 10px;gap:6px;color:rgba(255,255,255,0.45);font-size:12px;margin:0 4px;width:180px;flex-shrink:0}
+.tb-apps{display:flex;gap:1px;margin:0 6px;flex:1}
+.tb-app{width:38px;height:38px;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+.tb-app.act::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:14px;height:2px;background:#2563eb;border-radius:2px}
+.tb-tray{margin-left:auto;display:flex;align-items:center;gap:8px;padding:0 8px}
+.tb-time{color:rgba(255,255,255,0.75);font-size:11px;text-align:right;line-height:1.4}
+
+/* Windows */
+.win{position:absolute;background:#fff;border:1px solid #aaa;box-shadow:0 6px 28px rgba(0,0,0,0.5);display:flex;flex-direction:column;transition:opacity .5s ease}
+.win.top{box-shadow:0 10px 44px rgba(0,0,0,0.65);border-color:#999}
+.win.dimmed{opacity:.25;pointer-events:none}
+.win.eod-dim{opacity:.18;pointer-events:none}
+.tbar{height:30px;display:flex;align-items:center;padding:0 4px;gap:4px;flex-shrink:0;user-select:none}
+.tbar-ico{width:15px;height:15px;border-radius:2px;flex-shrink:0}
+.tbar-ttl{font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px}
+.tbar-btns{display:flex;margin-left:auto}
+.tbb{width:36px;height:30px;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;color:#555}
+.tbb:hover{background:#e5e7eb}
+.tbb.cl:hover{background:#c42b1c;color:#fff}
+
+/* Teams layout */
+.teams-layout{display:flex;flex:1;overflow:hidden}
+.teams-sidebar{width:46px;background:#201f42;display:flex;flex-direction:column;align-items:center;padding:6px 0;gap:2px;flex-shrink:0}
+.ts-item{width:38px;height:38px;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,0.55);font-size:9px;gap:2px;position:relative}
+.ts-item.act{color:#fff}
+.ts-item.act::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;background:#7c7dff;border-radius:0 2px 2px 0}
+.ts-badge{position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;background:#dc2626;color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.teams-panel{width:190px;background:#f3f2f1;border-right:1px solid #e1dfdd;display:flex;flex-direction:column;flex-shrink:0}
+.teams-panel-hdr{padding:7px 10px;font-size:13px;font-weight:600;color:#111;border-bottom:1px solid #e1dfdd}
+.teams-search{margin:5px 8px;background:#fff;border:1px solid #d1d1d1;padding:4px 8px;font-size:11px;color:#666;border-radius:3px}
+.tc-row{padding:6px 10px;border-bottom:1px solid #ece9e8;display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+.tc-row:hover,.tc-row.active{background:#edebe9}
+.tc-avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.tc-name{font-size:11px;font-weight:600;color:#111;display:flex;justify-content:space-between}
+.tc-time-sm{font-size:9px;color:#888;font-weight:400}
+.tc-preview{font-size:10px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.tc-unread{width:14px;height:14px;border-radius:50%;background:#dc2626;color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.teams-chat{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.tc-chat-hdr{background:#fff;border-bottom:1px solid #e5e7eb;padding:6px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tc-tabs{display:flex;gap:12px;font-size:11px;color:#888;margin-left:8px}
+.tc-tabs span:first-child{color:#5b5fc7;border-bottom:2px solid #5b5fc7;padding-bottom:2px;font-weight:600}
+.tc-body{flex:1;overflow:hidden;padding:10px 12px;display:flex;flex-direction:column;gap:10px;background:#fafafa}
+.tc-day{text-align:center;font-size:10px;color:#aaa;display:flex;align-items:center;gap:8px}
+.tc-day::before,.tc-day::after{content:'';flex:1;height:1px;background:#e5e7eb}
+.tc-msg{display:flex;gap:8px}
+.tc-msg-av{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;margin-top:2px}
+.tc-msg-who{font-size:12px;font-weight:600;color:#111}
+.tc-msg-when{font-size:10px;color:#aaa;margin-left:6px}
+.tc-bubble{border-radius:0 6px 6px 6px;padding:7px 10px;font-size:12px;color:#333;line-height:1.5;background:#fff;border:1px solid #e5e7eb;margin-top:3px}
+.tc-bubble.urgent{border-left:3px solid #d97706;background:#fffbeb}
+.tc-bubble.key{border-left:3px solid #5b5fc7;background:#f5f5ff}
+.tc-bubble.success{border-left:3px solid #059669;background:#f0fdf4}
+.tc-input-area{border-top:1px solid #e5e7eb;padding:6px 10px;background:#fff;flex-shrink:0}
+.tc-input-box{border:1px solid #e5e7eb;border-radius:4px;padding:6px 10px;font-size:12px;color:#aaa;display:flex;align-items:center;gap:8px}
+.tc-toolbar{display:flex;gap:8px;padding:4px 10px;border-top:1px solid #f0f0f0}
+.tc-tb-btn{font-size:11px;color:#aaa;cursor:pointer}
+
+/* HelpGate */
+.hg-subnav{background:#f9fafb;border-bottom:1px solid #e5e7eb;padding:3px 10px;display:flex;gap:12px;font-size:10px;color:#888;flex-shrink:0}
+.hg-subnav span:first-child{color:#7a1e2e;font-weight:700;border-bottom:2px solid #7a1e2e;padding-bottom:1px}
+.hg-filter-row{padding:4px 8px;border-bottom:1px solid #e5e7eb;background:#fff;display:flex;gap:6px;flex-shrink:0}
+.hg-srch{flex:1;border:1px solid #d1d5db;font-size:10px;padding:3px 7px;color:#555}
+.hg-filter-btn{background:#7a1e2e;color:#fff;font-size:9px;font-weight:700;padding:2px 8px;cursor:pointer;border:none}
+.hg-thead{display:grid;grid-template-columns:14px 1fr 60px;padding:3px 8px;background:#f0f0f0;font-size:9px;font-weight:700;color:#555;border-bottom:1px solid #d1d5db;flex-shrink:0}
+.hg-rows{flex:1;overflow:hidden}
+.hg-row{display:grid;grid-template-columns:14px 1fr 60px;padding:4px 8px;border-bottom:1px solid #f0f0f0;font-size:10px;color:#333;align-items:center;min-height:24px}
+.hg-row.urg{background:#fef2f2}
+.hg-chk{width:10px;height:10px;border:1px solid #d1d5db;border-radius:1px}
+.hg-pill{font-size:8px;font-weight:700;padding:1px 5px;border-radius:2px;text-align:center}
+.hg-pill.U{background:#dc2626;color:#fff}
+.hg-pill.O{background:#e5e7eb;color:#374151}
+.hg-pill.P{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.hg-pill.R{background:#d1fae5;color:#065f46}
+.hg-note{font-size:9px;color:#dc2626;margin-top:1px}
+.hg-artifact{font-size:9px;color:#dc2626;opacity:.45;font-style:italic}
+
+/* CP360 */
+.cp-toolbar{background:#2d4a7a;color:#fff;padding:2px 8px;font-size:9px;display:flex;gap:14px;flex-shrink:0}
+.cp-toolbar span{opacity:.8;cursor:pointer}
+.cp-toolbar span:first-child{opacity:1;font-weight:700}
+.cp-sub{display:flex;font-size:9px;background:#1e3a6b;flex-shrink:0}
+.cp-sub span{color:rgba(255,255,255,.6);padding:2px 10px;cursor:pointer}
+.cp-sub span:first-child{background:rgba(255,255,255,.15);color:#fff;font-weight:600}
+.cp-filter{padding:3px 8px;background:#f9fafb;border-bottom:1px solid #e5e7eb;display:flex;gap:6px;flex-shrink:0}
+.cp-filter input{flex:1;border:1px solid #d1d5db;font-size:9px;padding:2px 6px;color:#555}
+.cp-filter button{background:#2d4a7a;color:#fff;border:none;font-size:9px;padding:2px 10px;cursor:pointer}
+.cp-thead{display:grid;grid-template-columns:1fr 50px 80px 70px 50px;padding:3px 8px;background:#e8eef5;font-size:9px;font-weight:700;color:#374151;border-bottom:1px solid #c8d5e5;flex-shrink:0}
+.cp-row{display:grid;grid-template-columns:1fr 50px 80px 70px 50px;padding:3px 8px;font-size:10px;color:#333;border-bottom:1px solid #f0f0f0}
+.cp-row:nth-child(even){background:#f0f4fa}
+.cp-row .pend{color:#d97706;font-weight:500}
+.cp-row .actv{color:#059669}
+.cp-row .mono{font-family:'Consolas',monospace;font-size:9px;color:#6b7280}
+.cp-error{position:absolute;top:38%;left:30%;background:#fff;border:1px solid #d1d5db;box-shadow:0 3px 14px rgba(0,0,0,.3);padding:12px 14px;width:195px;z-index:10}
+.cp-err-ttl{font-size:11px;font-weight:700;color:#dc2626;margin-bottom:6px}
+.cp-err-body{font-size:10px;color:#374151;line-height:1.5;margin-bottom:10px}
+.cp-err-btn{background:#2d4a7a;color:#fff;border:none;font-size:10px;padding:3px 14px;cursor:pointer}
+
+/* Sticky */
+.sticky{position:absolute;background:#fef08a;padding:10px;box-shadow:2px 5px 14px rgba(0,0,0,.3);transform:rotate(1.3deg);z-index:50;transition:opacity .5s ease}
+.sticky-hdr{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;margin-bottom:6px;display:flex;justify-content:space-between}
+.sticky-body{font-size:11px;line-height:1.6;color:#374151}
+
+/* File icons */
+.file-icons-group{position:absolute;left:10px;bottom:52px;display:flex;flex-direction:column;gap:6px;transition:opacity .5s ease}
+.file-ico{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:6px;border-radius:4px;border:2px solid transparent;transition:border-color .2s,box-shadow .2s,transform .15s,background .2s}
+.file-ico-img{width:40px;height:48px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;border-radius:2px;flex-shrink:0}
+.file-ico-name{font-size:9px;color:rgba(255,255,255,.9);text-align:center;line-height:1.3;text-shadow:0 1px 2px rgba(0,0,0,.6);word-break:break-all;max-width:62px}
+.file-ico.selectable{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.08);animation:pulse-border 2s ease-in-out infinite}
+.file-ico.selectable:hover{border-color:#fff;background:rgba(255,255,255,.15);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.file-ico.selected{border-color:#2563eb;background:rgba(37,99,235,.18);box-shadow:0 0 0 3px rgba(37,99,235,.35),0 6px 20px rgba(0,0,0,.4);transform:translateY(-2px)}
+
+@keyframes pulse-border{0%,100%{border-color:rgba(255,255,255,.35)}50%{border-color:rgba(255,255,255,.7)}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes slidein{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* HR Buddy */
+.hrb-dock{position:absolute;top:26px;right:0;width:255px;bottom:44px;display:flex;flex-direction:column;background:#fff;border-left:1px solid #d0d9e8;box-shadow:-3px 0 20px rgba(37,99,235,.1);z-index:40;transition:box-shadow .4s,opacity .5s}
+.hrb-dock.deciding{box-shadow:-3px 0 30px rgba(37,99,235,.3)}
+.hrb-dock.eod-dim{opacity:.18;pointer-events:none}
+.hrb-tbar{height:30px;background:#fff;border-bottom:1px solid #e0ecff;display:flex;align-items:center;padding:0 8px;gap:6px;flex-shrink:0}
+.hrb-tbar-title{font-size:12px;font-weight:600;color:#111;flex:1}
+.hrb-tbar-btns{display:flex;gap:4px;color:#888;font-size:12px}
+.hrb-tbar-btns span{cursor:pointer;padding:2px 4px}
+.hrb-body{flex:1;background:linear-gradient(180deg,#e8f0fe 0%,#f0f4ff 40%,#eef2fb 100%);display:flex;flex-direction:column;padding:14px 12px;gap:10px;overflow:hidden}
+.hrb-identity{display:flex;flex-direction:column;gap:6px}
+.hrb-big-badge{background:#2563eb;color:#fff;font-size:11px;font-weight:700;padding:3px 14px;border-radius:4px;align-self:flex-end}
+.hrb-big-name{font-size:16px;font-weight:700;color:#111}
+.hrb-bubble{background:#fff;border-radius:0 8px 8px 8px;padding:10px 12px;font-size:12px;line-height:1.55;color:#333;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.hrb-decision-prompt{background:rgba(255,255,255,.85);border:1px solid #bfdbfe;border-radius:4px;padding:10px 12px;text-align:center}
+.hrb-decision-prompt p{font-size:11px;color:#6b7280;font-style:italic;margin-bottom:2px}
+.hrb-decision-prompt strong{font-size:13px;color:#1e3a6b;display:block;margin-bottom:6px}
+.hrb-upload-zone{border:2px dashed #9dc0f5;border-radius:6px;padding:14px 10px;text-align:center;background:rgba(255,255,255,.55);cursor:pointer;transition:border-color .2s,background .2s}
+.hrb-upload-zone:hover{border-color:#2563eb;background:rgba(255,255,255,.8)}
+.hrb-upload-zone.active{border-color:#2563eb;background:rgba(255,255,255,.9);border-style:solid}
+.hrb-upload-ico{font-size:20px;color:#7ab4f5;display:block;margin-bottom:4px}
+.hrb-upload-txt{font-size:11px;color:#555;line-height:1.4}
+.hrb-staged{display:flex;flex-direction:column;gap:4px;padding:6px 0}
+.hrb-staged-file{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e0ecff;border-radius:3px;padding:4px 8px;font-size:11px;color:#1f2937}
+.hrb-staged-file-ico{width:16px;height:16px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;flex-shrink:0}
+.hrb-upload-btn{width:100%;background:#2563eb;color:#fff;border:none;font-size:12px;font-weight:600;padding:8px;border-radius:3px;cursor:pointer;margin-top:6px;transition:background .15s}
+.hrb-upload-btn:hover{background:#1d4ed8}
+.hrb-upload-btn:disabled{background:#9ca3af;cursor:not-allowed}
+.hrb-footer{border-top:1px solid #e5e7eb;background:#fff;padding:6px 8px;flex-shrink:0}
+.hrb-inp-wrap{border:1px solid #d1d5db;border-radius:4px;padding:5px 8px;display:flex;align-items:center;gap:6px;background:#fff;transition:border-color .2s}
+.hrb-inp-wrap.clickable{cursor:pointer;border-color:#9dc0f5}
+.hrb-inp-wrap.clickable:hover{border-color:#2563eb;background:#f8fbff}
+.hrb-inp{flex:1;font-size:12px;color:#aaa;border:none;outline:none;background:transparent;cursor:inherit}
+.hrb-inp-row2{display:flex;align-items:center;justify-content:space-between;padding:2px 2px 0;font-size:12px;color:#aaa}
+.hrb-ask-hint{font-size:10px;color:#2563eb;text-align:center;margin-top:3px;font-style:italic;animation:fadein .5s ease}
+
+/* Toast */
+.toast-zone{position:absolute;bottom:50px;right:4px;width:248px;display:flex;flex-direction:column;gap:5px;z-index:75;transition:opacity .5s}
+.toast-card{background:#1c2535;border:1px solid #2d3f55;border-radius:5px;padding:8px 10px;color:#fff}
+.toast-app-row{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.toast-app-ico{width:14px;height:14px;border-radius:2px;flex-shrink:0}
+.toast-app-name{font-size:10px;font-weight:700;color:#d1d5db}
+.toast-x{margin-left:auto;color:#6b7280;font-size:10px;cursor:pointer}
+.toast-msg{font-size:11px;color:#e5e7eb;line-height:1.4}
+
+/* ── END OF DAY OVERLAY ── */
+.eod-overlay{position:absolute;inset:0;background:rgba(4,8,20,0.72);z-index:55;animation:fadein .8s ease;display:flex;align-items:center;justify-content:center}
+/* Consequence card */
+.consequence-card{background:#fff;border:1px solid #2a3a5c;box-shadow:0 12px 56px rgba(0,0,0,.7);width:520px;border-radius:2px;overflow:hidden;animation:slidein .5s ease}
+.csq-header{padding:16px 20px 14px;border-bottom:1px solid #f0f0f0;display:flex;align-items:flex-start;gap:12px}
+.csq-icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.csq-header-text{flex:1}
+.csq-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:3px}
+.csq-title{font-size:17px;font-weight:600;color:#111827}
+.csq-time{font-size:11px;color:#9ca3af;margin-top:2px}
+.csq-body{padding:16px 20px}
+.csq-transcript{background:#f8f9fa;border-left:3px solid #374151;padding:12px 14px;font-size:13px;color:#374151;line-height:1.6;font-style:italic;margin-bottom:14px;border-radius:0 4px 4px 0}
+.csq-transcript.legal{border-color:#dc2626;background:#fef9f9}
+.csq-transcript.good{border-color:#059669;background:#f0fdf4}
+.csq-transcript.info{border-color:#2563eb;background:#f0f7ff}
+.csq-detail{font-size:12px;color:#6b7280;line-height:1.6;margin-bottom:14px}
+.csq-cta{width:100%;background:#1e3a6b;color:#fff;border:none;font-size:13px;font-weight:500;padding:11px 18px;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;transition:background .15s}
+.csq-cta:hover{background:#2a4d8f}
+
+/* ── END-OF-DAY DEBRIEF OVERLAY ── */
+.debrief-overlay{position:absolute;inset:0;background:rgba(4,8,20,0.88);z-index:60;display:flex;align-items:center;justify-content:center;animation:fadein .4s ease}
+.debrief-card{background:#fffef7;border-left:4px solid #1e3a6b;box-shadow:0 12px 56px rgba(0,0,0,.7);padding:26px 30px;width:560px;max-height:620px;overflow-y:auto;animation:slidein .4s ease}
+/* Opening screen */
+.opening-screen{position:fixed;inset:0;background:#1e3a6b;z-index:999;display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto}
+.opening-card{background:#fffef7;border-left:4px solid #2563eb;box-shadow:0 12px 56px rgba(0,0,0,.7);padding:32px 36px;width:100%;max-width:640px;border-radius:2px}
+.op-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#6b7280;margin-bottom:16px}
+.op-body{font-size:14px;line-height:1.8;color:#1f2937}.op-body p{margin-bottom:14px}
+.op-quote{border-left:3px solid #93c5fd;padding:10px 14px;margin:4px 0 14px;background:#f0f7ff;font-size:13px;line-height:1.7;color:#1e3a6b;font-style:italic}
+.op-files{background:#f9fafb;border:1px solid #e5e7eb;border-radius:3px;padding:14px 16px;margin:4px 0 14px;font-size:12.5px;line-height:1.7;color:#374151}
+.op-files-row{display:flex;gap:8px;align-items:flex-start;padding:4px 0}.op-files-row+.op-files-row{border-top:1px solid #e5e7eb;margin-top:8px;padding-top:12px}
+.op-file-badge{flex-shrink:0;width:28px;height:20px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;margin-top:2px}
+.op-cta{font-size:15px;font-weight:700;color:#1e3a6b;margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb}
+.op-btn{display:inline-block;background:#2563eb;color:#fff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:3px;border:none;cursor:pointer;margin-top:12px;letter-spacing:.01em}
+.op-btn:hover{background:#1d4ed8}
+.db-eyebrow{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;margin-bottom:8px}
+.db-heading{font-size:17px;font-weight:600;color:#1e3a6b;margin-bottom:12px}
+.db-body{font-size:13px;line-height:1.75;color:#374151}
+.db-body p{margin-bottom:10px}
+.db-body ul{padding-left:16px;margin-bottom:10px}
+.db-body li{margin-bottom:5px}
+.db-callout{padding:10px 12px;border-left:3px solid #d97706;background:#fffbeb;font-size:12px;line-height:1.6;margin:10px 0}
+.db-callout.good{border-color:#059669;background:#f0fdf4}
+.db-callout.info{border-color:#2563eb;background:#eff6ff}
+.db-reinf{font-size:13px;font-style:italic;color:#1e3a6b;border-top:1px solid #e5e7eb;margin-top:16px;padding-top:16px;line-height:1.8}
+.carry{background:#eff6ff;border:1px solid #dbeafe;padding:14px 16px;margin-top:16px}
+.carry-ttl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#2563eb;margin-bottom:10px}
+.carry-item{display:flex;gap:6px;font-size:12px;color:#1f2937;margin-bottom:7px;line-height:1.5}
+.carry-dot{width:5px;height:5px;border-radius:50%;background:#2563eb;flex-shrink:0;margin-top:5px}
+.cont-btn{display:inline-block;margin-top:16px;background:#1e3a6b;color:#fff;font-size:12px;font-weight:500;padding:9px 20px;cursor:pointer;border-radius:2px}
+.cont-btn:hover{background:#2a4d8f}
+
+/* ══════════════════════════════════════
+   MOBILE LAYOUT  (≤768px)
+   ══════════════════════════════════════ */
+@media(max-width:768px){
+  html,body,#root{overflow-y:auto;overflow-x:hidden;height:auto;min-height:100%;background:#1e3a6b}
+  .stage{display:block;height:auto;min-height:100vh;background:#1e3a6b}
+  .desktop{display:none}
+}
+.mob-root{display:none}
+@media(max-width:768px){
+  .mob-root{display:flex;flex-direction:column;min-height:100vh;background:#1e3a6b;font-family:'Segoe UI',system-ui,sans-serif}
+}
+/* Header */
+.mob-hdr{background:#0d1117;padding:10px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50;border-bottom:1px solid #1e293b}
+.mob-hdr-title{font-size:12px;color:rgba(255,255,255,.55);flex:1;letter-spacing:.03em}
+.mob-hdr-time{font-size:12px;color:rgba(255,255,255,.75);font-weight:500}
+.mob-prog-dots{display:flex;gap:4px}
+.mob-prog-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .5s}
+.mob-prog-dot.on{background:#fff}
+/* Scroll body */
+.mob-body{flex:1;padding:16px 14px 32px;display:flex;flex-direction:column;gap:14px}
+/* Section label */
+.mob-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.4);margin-bottom:-6px}
+/* Teams card */
+.mob-teams-card{background:#fff;border-radius:4px;overflow:hidden;box-shadow:0 3px 16px rgba(0,0,0,.4)}
+.mob-teams-hdr{background:#201f42;padding:8px 12px;font-size:12px;font-weight:600;color:#fff;display:flex;align-items:center;gap:6px}
+.mob-msg{padding:12px 12px 10px;border-bottom:1px solid #f0f0f0;display:flex;gap:10px}
+.mob-msg-av{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.mob-msg-who{font-size:12px;font-weight:600;color:#111}
+.mob-msg-when{font-size:10px;color:#aaa;margin-left:6px}
+.mob-msg-bubble{font-size:13px;color:#333;line-height:1.55;margin-top:4px;padding:8px 10px;border-radius:0 6px 6px 6px;border:1px solid #e5e7eb}
+.mob-msg-bubble.urgent{border-left:3px solid #d97706;background:#fffbeb}
+.mob-msg-bubble.key{border-left:3px solid #5b5fc7;background:#f5f5ff}
+.mob-msg-bubble.success{border-left:3px solid #059669;background:#f0fdf4}
+/* File cards */
+.mob-files{display:flex;gap:10px}
+.mob-file-card{flex:1;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:6px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:default;transition:border-color .2s,background .2s,box-shadow .2s}
+.mob-file-card.selectable{cursor:pointer;animation:pulse-border 2s ease-in-out infinite}
+.mob-file-card.selectable:active{background:rgba(255,255,255,.18)}
+.mob-file-card.selected{border-color:#2563eb;background:rgba(37,99,235,.2);box-shadow:0 0 0 2px rgba(37,99,235,.4)}
+.mob-file-ico{width:44px;height:52px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.mob-file-name{font-size:9px;color:rgba(255,255,255,.85);text-align:center;line-height:1.3;word-break:break-all}
+.mob-file-check{font-size:10px;color:#93c5fd;font-weight:700}
+/* HR Buddy card */
+.mob-hrb-card{background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 3px 16px rgba(37,99,235,.2);border:1px solid #bfdbfe}
+.mob-hrb-hdr{background:linear-gradient(135deg,#e8f0fe,#f0f4ff);border-bottom:1px solid #e0ecff;padding:10px 14px;display:flex;align-items:center;gap:8px}
+.mob-hrb-name{font-size:14px;font-weight:700;color:#111;flex:1}
+.mob-hrb-badge{background:#2563eb;color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:4px}
+.mob-hrb-body{padding:12px 14px;background:linear-gradient(180deg,#f0f5ff,#f8fbff)}
+.mob-hrb-bubble{background:#fff;border-radius:0 8px 8px 8px;padding:10px 12px;font-size:13px;line-height:1.55;color:#333;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:12px}
+/* Decision prompt in mobile HR Buddy */
+.mob-dec-prompt{background:rgba(255,255,255,.8);border:1px solid #bfdbfe;border-radius:4px;padding:10px 12px;text-align:center;margin-bottom:12px}
+.mob-dec-prompt p{font-size:11px;color:#6b7280;font-style:italic;margin-bottom:2px}
+.mob-dec-prompt strong{font-size:14px;color:#1e3a6b;display:block}
+/* Staged files in mobile */
+.mob-staged{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.mob-staged-row{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e0ecff;border-radius:3px;padding:6px 10px;font-size:12px;color:#1f2937}
+/* Decision tiles - full width */
+.mob-decision-tiles{display:flex;flex-direction:column;gap:8px}
+.mob-d-tile{background:#fff;border:1.5px solid #d1d5db;border-radius:4px;padding:14px 16px;display:flex;gap:10px;align-items:flex-start;cursor:pointer;transition:border-color .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent}
+.mob-d-tile:active{background:#eff6ff;border-color:#2563eb}
+.mob-d-tile__key{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.mob-d-tile.a .mob-d-tile__key{background:#fef2f2;color:#dc2626}
+.mob-d-tile.b .mob-d-tile__key{background:#eff6ff;color:#2563eb}
+.mob-d-tile.c .mob-d-tile__key{background:#f0fdf4;color:#059669}
+.mob-d-tile__main{font-size:14px;font-weight:500;color:#111;line-height:1.4}
+.mob-d-tile__sub{font-size:11px;color:#6b7280;margin-top:3px;font-family:'Consolas',monospace}
+.mob-upload-btn{width:100%;background:#2563eb;color:#fff;border:none;font-size:14px;font-weight:600;padding:13px;border-radius:4px;cursor:pointer;margin-top:4px}
+.mob-upload-btn:disabled{background:#9ca3af;cursor:not-allowed}
+.mob-ask-hint{font-size:11px;color:rgba(255,255,255,.65);text-align:center;font-style:italic;padding:6px 0}
+/* Mobile consequence */
+.mob-consequence{background:#fff;border-radius:4px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.4);animation:slidein .4s ease}
+.mob-csq-hdr{padding:14px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:flex-start;gap:12px}
+.mob-csq-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.mob-csq-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#9ca3af;margin-bottom:3px}
+.mob-csq-title{font-size:16px;font-weight:600;color:#111}
+.mob-csq-body{padding:14px 16px}
+.mob-csq-transcript{background:#f8f9fa;border-left:3px solid #374151;padding:10px 12px;font-size:13px;color:#374151;line-height:1.6;font-style:italic;margin-bottom:12px;border-radius:0 4px 4px 0}
+.mob-csq-transcript.legal{border-color:#dc2626;background:#fef9f9}
+.mob-csq-transcript.good{border-color:#059669;background:#f0fdf4}
+.mob-csq-transcript.info{border-color:#2563eb;background:#f0f7ff}
+.mob-csq-detail{font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:14px}
+.mob-csq-cta{width:100%;background:#1e3a6b;color:#fff;border:none;font-size:14px;font-weight:500;padding:12px 16px;cursor:pointer;border-radius:2px;text-align:left;display:flex;justify-content:space-between}
+/* Mobile debrief */
+.mob-debrief{background:#fffef7;border-left:4px solid #1e3a6b;border-radius:0 4px 4px 0;padding:18px 16px;animation:slidein .4s ease;box-shadow:0 4px 24px rgba(0,0,0,.25)}
+.mob-db-eyebrow{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;margin-bottom:6px}
+.mob-db-heading{font-size:16px;font-weight:600;color:#1e3a6b;margin-bottom:10px}
+.mob-db-body{font-size:13px;line-height:1.75;color:#374151}
+.mob-db-body p{margin-bottom:8px}
+.mob-db-body ul{padding-left:16px;margin-bottom:8px}
+.mob-db-body li{margin-bottom:4px}
+.mob-db-callout{padding:9px 11px;border-left:3px solid #d97706;background:#fffbeb;font-size:12px;line-height:1.6;margin:8px 0}
+.mob-db-callout.good{border-color:#059669;background:#f0fdf4}
+.mob-db-callout.info{border-color:#2563eb;background:#eff6ff}
+.mob-db-reinf{font-size:13px;font-style:italic;color:#1e3a6b;border-top:1px solid #e5e7eb;margin-top:14px;padding-top:14px;line-height:1.75}
+.mob-carry{background:#eff6ff;border:1px solid #dbeafe;padding:12px 14px;margin-top:14px;border-radius:3px}
+.mob-carry-ttl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#2563eb;margin-bottom:8px}
+.mob-carry-item{display:flex;gap:6px;font-size:12px;color:#1f2937;margin-bottom:6px;line-height:1.5}
+.mob-carry-dot{width:5px;height:5px;border-radius:50%;background:#2563eb;flex-shrink:0;margin-top:5px}
+.mob-cont-btn{display:block;width:100%;background:#1e3a6b;color:#fff;font-size:14px;font-weight:500;padding:12px 16px;cursor:pointer;border-radius:2px;border:none;margin-top:14px;text-align:center}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef} = React;
+
+/* ── HR Buddy crystal icon ── */
+function HRBuddyIcon({size=22}){
+  return(
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <polygon points="20,2 34,10 34,30 20,38 6,30 6,10" fill="#e8f0fe"/>
+      <polygon points="20,2 34,10 20,18" fill="#4f83cc"/>
+      <polygon points="34,10 34,30 20,18" fill="#2563eb"/>
+      <polygon points="34,30 20,38 20,18" fill="#1d4ed8"/>
+      <polygon points="20,38 6,30 20,18" fill="#7c3aed"/>
+      <polygon points="6,30 6,10 20,18" fill="#c084fc"/>
+      <polygon points="6,10 20,2 20,18" fill="#fb923c"/>
+    </svg>
+  );
+}
+
+function TBar({title,icoColor='#1e3a6b',bg='#f3f4f6',tc='#1f2937',bc='#555'}){
+  return(
+    <div className="tbar" style={{background:bg,borderBottom:`1px solid ${bg==='#f3f4f6'?'#d1d5db':'rgba(0,0,0,0.25)'}`}}>
+      <div className="tbar-ico" style={{background:icoColor,opacity:.9}}/>
+      <div className="tbar-ttl" style={{color:tc}}>{title}</div>
+      <div className="tbar-btns">
+        <div className="tbb" style={{color:bc}}>─</div>
+        <div className="tbb" style={{color:bc}}>□</div>
+        <div className="tbb cl" style={{color:bc}}>✕</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Teams ── */
+function TeamsWin({dimCls, eodMessages}){
+  const sideItems=[{l:'🔔',n:'Activity',badge:3},{l:'💬',n:'Chat',act:true},{l:'👥',n:'Teams'},{l:'📅',n:'Calendar'},{l:'📞',n:'Calls'},{l:'📁',n:'Files'}];
+  const convos=[
+    {init:'MD',c:'#4338ca',name:'Meridian Dynamics',time:'8:35 AM',preview:'HR Policy Update…'},
+    {init:'HR',c:'#dc2626',name:'HR Team Chat',time:eodMessages?'4:58 PM':'8:47 AM',preview:eodMessages?'Marcus L.: Good call. Let me loop in…':'Marcus L.: Jamie — HR Buddy can now…',unread:eodMessages?1:1,active:true},
+    {init:'MC',c:'#0891b2',name:'Marcus Corner, HR',time:'8:19 AM',preview:'Can you pull the CP360 export?'},
+  ];
+  return(
+    <div className={`win ${dimCls}`} style={{left:10,top:30,width:480,height:520,zIndex:20}}>
+      <TBar title="Microsoft Teams" icoColor="#5c5f9c"/>
+      <div className="teams-layout">
+        <div className="teams-sidebar">
+          {sideItems.map((s,i)=>(
+            <div key={i} className={`ts-item ${s.act?'act':''}`} title={s.n}>
+              <span style={{fontSize:14}}>{s.l}</span><span>{s.n}</span>
+              {s.badge&&<div className="ts-badge">{s.badge}</div>}
+            </div>
+          ))}
+        </div>
+        <div className="teams-panel">
+          <div className="teams-panel-hdr">Chat</div>
+          <div className="teams-search">🔍 <span>Search</span></div>
+          <div>{convos.map((c,i)=>(
+            <div key={i} className={`tc-row ${c.active?'active':''}`}>
+              <div className="tc-avatar" style={{background:c.c}}>{c.init}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div className="tc-name">{c.name}<span className="tc-time-sm">{c.time}</span></div>
+                <div className="tc-preview">{c.preview}</div>
+              </div>
+              {c.unread>0&&<div className="tc-unread">{c.unread}</div>}
+            </div>
+          ))}</div>
+        </div>
+        <div className="teams-chat">
+          <div className="tc-chat-hdr">
+            <div style={{width:24,height:24,borderRadius:'50%',background:'#dc2626',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#fff',flexShrink:0}}>HR</div>
+            <div style={{fontSize:13,fontWeight:600,color:'#111'}}>HR Team Chat</div>
+            <div className="tc-tabs" style={{marginLeft:8}}><span>Chat</span><span>Groups</span></div>
+            <div style={{marginLeft:'auto',fontSize:12,color:'#aaa'}}>🔍 ⚙</div>
+          </div>
+          <div className="tc-body">
+            <div className="tc-day">Today</div>
+            <div className="tc-msg">
+              <div className="tc-msg-av" style={{background:'#7c3aed'}}>ML</div>
+              <div style={{flex:1}}>
+                <span className="tc-msg-who">Marcus L., Manager, HR</span><span className="tc-msg-when">8:47 AM</span>
+                <div className="tc-bubble urgent">Jamie, urgency on that HelpGate ticket #90210. The VP is now aware. Need status by 9:15 AM.</div>
+              </div>
+            </div>
+            <div className="tc-msg">
+              <div className="tc-msg-av" style={{background:'#7c3aed'}}>ML</div>
+              <div style={{flex:1}}>
+                <span className="tc-msg-who">Marcus L., Manager, HR</span><span className="tc-msg-when">8:47 AM</span>
+                <div className="tc-bubble key">Jamie — HR Buddy can now compare plan PDFs and answer benefits questions. I want to use it to handle the enrollment volume this year. Can you get it set up to answer employee questions about OptiEnroll Hub?</div>
+              </div>
+            </div>
+            {eodMessages&&(
+              <div className="tc-msg" style={{animation:'slidein .5s ease'}}>
+                <div className="tc-msg-av" style={{background:'#7c3aed'}}>ML</div>
+                <div style={{flex:1}}>
+                  <span className="tc-msg-who">Marcus L., Manager, HR</span><span className="tc-msg-when">4:58 PM</span>
+                  <div className="tc-bubble success">Good call. Let me loop in Legal.</div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="tc-input-area"><div className="tc-input-box"><span style={{color:'#aaa',fontSize:12}}>Type a message</span><span style={{marginLeft:'auto',color:'#aaa'}}>⊕ 📎 😊</span></div></div>
+          <div className="tc-toolbar">{['A𝑓','📎','😊'].map((b,i)=><span key={i} className="tc-tb-btn">{b}</span>)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── HelpGate ── */
+function HelpGateWin({dimCls, eodMode}){
+  const morning=[
+    {id:'#90210',name:'Superintendent',note:'VP is now aware.',status:'U',urgent:true},
+    {id:'#90211',name:'Contain enforcement events',status:'U',urgent:true},
+    {id:'#90215',name:'Cases reports processed mesh',status:'P',artifact:true},
+    {id:'#90217',name:'Open requir/rendered admin',status:'O'},
+    {id:'#90218',name:'Scanfusion dialog output run…',status:'O'},
+    {id:'#90219',name:'Software and account for marcus…',status:'O'},
+    {id:'#90221',name:'Enrollment Benefits — PPO tier q…',status:'O'},
+  ];
+  const eod=[
+    {id:'#90210',name:'Superintendent — VP escalation resolved',status:'R'},
+    {id:'#90211',name:'Contain enforcement events',status:'R'},
+    {id:'#90215',name:'Cases reports processed mesh',status:'R'},
+    {id:'#90217',name:'Open requir/rendered admin',status:'R'},
+    {id:'#90218',name:'Scanfusion dialog output run…',status:'R'},
+    {id:'#90221',name:'Enrollment Benefits — 23 resolved today',status:'R'},
+    {id:'#90230',name:'New: OE question — HDHP deductible',status:'O'},
+  ];
+  const tickets=eodMode?eod:morning;
+  return(
+    <div className={`win top ${dimCls}`} style={{left:355,top:16,width:355,height:340,zIndex:28}}>
+      <TBar title="HelpGate" icoColor="#7a1e2e" bg="#7a1e2e" tc="#fff" bc="rgba(255,255,255,0.75)"/>
+      <div className="hg-subnav"><span>Tickets</span><span>Release</span><span>Schedules</span><span>HelpGate</span></div>
+      <div className="hg-filter-row">
+        <div className="hg-srch">🔍 Search</div>
+        {['Tickets','Release','Urgent'].map(l=><div key={l} className="hg-filter-btn">{l}</div>)}
+      </div>
+      <div className="hg-thead"><div/><div>Ticket</div><div>Status</div></div>
+      <div className="hg-rows">
+        {tickets.map((t,i)=>(
+          <div key={i} className={`hg-row ${t.urgent?'urg':''}`}>
+            <div className="hg-chk"/>
+            <div><div>{t.id}: {t.name}</div>
+              {t.note&&<div className="hg-note">{t.note}</div>}
+              {t.artifact&&<div className="hg-artifact">⚠ render artifact</div>}
+            </div>
+            <div><span className={`hg-pill ${t.status}`}>{({U:'Urgent',O:'Open',P:'Pending',R:'Resolved'})[t.status]}</span></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── CP360 ── */
+function CP360Win({dimCls,showErr,onDismiss}){
+  const rows=[
+    {name:'Rivera, Jamie A.',dept:'HR',ssn:'***-**-4821',oe:'Active',pct:'100%'},
+    {name:'Chen, Marcus T.',dept:'Ops',ssn:'***-**-9034',oe:'Pending',pct:'40%'},
+    {name:'Okafor, David K.',dept:'HR',ssn:'***-**-1127',oe:'Active',pct:'100%'},
+    {name:'Park, Sandra J.',dept:'Legal',ssn:'***-**-5512',oe:'Pending',pct:'65%'},
+    {name:'Williams, T. R.',dept:'IT',ssn:'***-**-7741',oe:'Active',pct:'90%'},
+    {name:'Abernathy, C.',dept:'Finance',ssn:'***-**-2298',oe:'Pending',pct:'20%'},
+  ];
+  return(
+    <div className={`win ${dimCls}`} style={{left:450,top:296,width:460,height:280,zIndex:22}}>
+      <TBar title="CorePeople360" icoColor="#2d4a7a" bg="#2d4a7a" tc="#fff" bc="rgba(255,255,255,0.75)"/>
+      <div className="cp-toolbar"><span>Data Screens</span><span>Search</span><span>Reports</span><span>Admin</span></div>
+      <div className="cp-sub"><span>Employee Records</span><span>Enrollment</span><span>Benefits</span></div>
+      <div className="cp-filter"><input defaultValue="OE Export — Oct 14" style={{fontFamily:'Consolas,monospace'}}/><button>Refresh</button><button style={{background:'#059669'}}>Export</button></div>
+      <div className="cp-thead"><div>Employee Name</div><div>Dept</div><div>SSN (masked)</div><div>OE Status</div><div>Compl.</div></div>
+      <div style={{flex:1,position:'relative',overflow:'hidden'}}>
+        {rows.map((r,i)=>(
+          <div key={i} className="cp-row">
+            <div>{r.name}</div><div>{r.dept}</div>
+            <div className="mono">{r.ssn}</div>
+            <div className={r.oe==='Pending'?'pend':'actv'}>{r.oe}</div>
+            <div>{r.pct}</div>
+          </div>
+        ))}
+        {showErr&&(
+          <div className="cp-error">
+            <div className="cp-err-ttl">⚠ CP360 System Error</div>
+            <div className="cp-err-body">System error during data validation for OptiEnroll Hub sync. Contact admin.</div>
+            <button className="cp-err-btn" onClick={onDismiss}>OK</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── File icons ── */
+function FileIcons({deciding,selected,onToggle,dimCls}){
+  const files=[
+    {key:'pdf',label:'PDF',color:'#dc2626',name:'MDC_Benefits_2026_Summary.pdf'},
+    {key:'csv',label:'CSV',color:'#059669',name:'CorePeople360_Enrollment_Export_Oct14.csv'},
+  ];
+  return(
+    <div className={`file-icons-group ${dimCls}`}>
+      {deciding&&<div style={{fontSize:10,color:'rgba(255,255,255,.8)',marginBottom:4,fontStyle:'italic',textAlign:'center',animation:'fadein .5s ease'}}>← click to select</div>}
+      {files.map(f=>{
+        const isSel=selected.includes(f.key);
+        return(
+          <div key={f.key} className={`file-ico ${deciding?'selectable':''} ${isSel?'selected':''}`} onClick={deciding?()=>onToggle(f.key):undefined}>
+            <div className="file-ico-img" style={{background:f.color}}>{f.label}</div>
+            <div className="file-ico-name">{f.name}</div>
+            {isSel&&<div style={{fontSize:9,color:'#93c5fd',fontWeight:700,textAlign:'center',marginTop:2}}>✓ selected</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── HR Buddy sidebar ── */
+function HRBuddySidebar({deciding,selected,onBeginDecide,onUpload,onAskFirst,dimCls}){
+  const hasFiles=selected.length>0;
+  return(
+    <div className={`hrb-dock ${deciding?'deciding':''} ${dimCls}`}>
+      <div className="hrb-tbar">
+        <HRBuddyIcon size={15}/>
+        <div className="hrb-tbar-title">HR Buddy</div>
+        <div className="hrb-tbar-btns"><span>···</span><span>✕</span></div>
+      </div>
+      <div className="hrb-body">
+        <div className="hrb-identity">
+          <div className="hrb-big-badge">HR Buddy</div>
+          <div style={{display:'flex',alignItems:'center',gap:8}}><HRBuddyIcon size={36}/><div className="hrb-big-name">HR Buddy</div></div>
+        </div>
+        {!deciding&&(
+          <>
+            <div className="hrb-bubble">Welcome, Jamie! Need help prioritizing your morning? Reviewing new HelpGate tickets now.</div>
+            <div className="hrb-upload-zone" onClick={onBeginDecide}>
+              <span className="hrb-upload-ico">↑</span>
+              <div className="hrb-upload-txt"><strong style={{color:'#333'}}>Upload documents to get started</strong><br/>Drag files here or click to browse</div>
+            </div>
+          </>
+        )}
+        {deciding&&(
+          <>
+            <div className="hrb-decision-prompt">
+              <p>HR Buddy is waiting.</p>
+              <strong>What do you upload?</strong>
+              <div style={{fontSize:10,color:'#6b7280',lineHeight:1.4}}>Select files from your desktop, or ask HR Buddy a question first.</div>
+            </div>
+            <div className={`hrb-upload-zone ${hasFiles?'active':''}`} style={{minHeight:90}}>
+              {!hasFiles&&<><span className="hrb-upload-ico" style={{color:'#9dc0f5'}}>↑</span><div className="hrb-upload-txt" style={{color:'#9ca3af'}}>Select files from your desktop</div></>}
+              {hasFiles&&(
+                <div className="hrb-staged">
+                  {selected.includes('pdf')&&<div className="hrb-staged-file"><div className="hrb-staged-file-ico" style={{background:'#dc2626'}}>PDF</div><span>MDC_Benefits_2026_Summary.pdf</span></div>}
+                  {selected.includes('csv')&&<div className="hrb-staged-file" style={{borderColor:'#fca5a5'}}><div className="hrb-staged-file-ico" style={{background:'#059669'}}>CSV</div><span>CorePeople360_Enrollment_Export_Oct14.csv</span></div>}
+                </div>
+              )}
+              <button className="hrb-upload-btn" disabled={!hasFiles} onClick={hasFiles?onUpload:undefined}>
+                {hasFiles?`Upload ${selected.length} file${selected.length>1?'s':''}…`:'Select files to upload'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+      <div className="hrb-footer">
+        <div className={`hrb-inp-wrap ${deciding?'clickable':''}`} onClick={deciding?onAskFirst:undefined}>
+          <div className="hrb-inp">Type a message...</div>
+          <div style={{color:'#6b7280',fontSize:13}}>🎤</div>
+        </div>
+        {deciding&&<div className="hrb-ask-hint">← click here to ask first instead</div>}
+        <div className="hrb-inp-row2"><span>😊</span><span style={{color:'#93c5fd',fontSize:16}}>→</span></div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Toasts ── */
+function ToastOverlay({dimCls}){
+  return(
+    <div className={`toast-zone ${dimCls}`}>
+      <div className="toast-card">
+        <div className="toast-app-row"><div className="toast-app-ico" style={{background:'#0078d4'}}/><div className="toast-app-name">Outlook</div><div className="toast-x">✕</div></div>
+        <div className="toast-msg">Calendar Reminder: [URGENT] OE Readiness Sync (9:30 AM)</div>
+      </div>
+      <div className="toast-card" style={{borderLeft:'2px solid #dc2626'}}>
+        <div className="toast-app-row"><div className="toast-app-ico" style={{background:'#059669'}}/><div className="toast-app-name">OptiEnroll Hub Admin</div><div className="toast-x">✕</div></div>
+        <div className="toast-msg">CRITICAL: Open Enrollment opens in 3 days — missing final data dump</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Taskbar ── */
+const TB_APPS=[{l:'T',c:'#5c5f9c',act:true},{l:'⊞',c:'#4f4f4f'},{l:'e',c:'#0078d4'},{l:'W',c:'#2b579a'},{l:'X',c:'#217346'},{l:'P',c:'#b7472a'},{l:'A',c:'#dc2626'}];
+function Taskbar({time}){
+  return(
+    <div className="taskbar">
+      <div className="tb-start"><img src="assets/mdc-logo.png" style={{width:24,height:24}} alt="MDC"/></div>
+      <div className="tb-search">🔍 <span>Type here to search</span></div>
+      <div className="tb-apps">
+        {TB_APPS.map((a,i)=><div key={i} className={`tb-app ${a.act?'act':''}`}><div style={{width:22,height:22,borderRadius:3,background:a.c,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:11,fontWeight:700}}>{a.l}</div></div>)}
+      </div>
+      <div className="tb-tray">
+        <span style={{color:'rgba(255,255,255,.4)',fontSize:10}}>▲</span>
+        <span style={{color:'rgba(255,255,255,.2)',fontSize:18}}>|</span>
+        <div className="tb-time"><div style={{fontWeight:500}}>{time||'8:47 AM'}</div><div style={{fontSize:10,opacity:.65}}>Tue, Oct 14</div></div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Consequence screens ── */
+function ConsequenceOverlay({choice, onRevealDebrief}){
+  const content={
+    A:{
+      icon:'📞',iconBg:'#fef2f2',iconColor:'#dc2626',
+      eyebrow:'End of day · 5:47 PM',
+      title:'Legal Department — Incoming Call',
+      transcript:<span><strong>Legal:</strong> "Jamie, we need to talk about HR Buddy. An employee filed a complaint. They want to know what system accessed their personal records today and whether they consented to it."</span>,
+      transcriptCls:'legal',
+      detail:'HR Buddy processed 14 employee-specific queries today using data from the CorePeople360 export. The export contained partial SSNs, dates of birth, and dependent information. There is no audit trail.',
+      cta:'See the full picture →',
+      time:'5:47 PM',
+    },
+    B:{
+      icon:'✓',iconBg:'#f0fdf4',iconColor:'#059669',
+      eyebrow:'End of day · 4:58 PM',
+      title:'23 HelpGate tickets resolved today',
+      transcript:<span><strong>Marcus L., Manager, HR · 4:58 PM:</strong> "Good call. Let me loop in Legal."</span>,
+      transcriptCls:'good',
+      detail:'HR Buddy deflected 23 general benefits questions. Employee-specific queries were handled manually through CorePeople360. The boundary held.',
+      cta:'See what you got right →',
+      time:'4:58 PM',
+    },
+    C:{
+      icon:'💬',iconBg:'#eff6ff',iconColor:'#2563eb',
+      eyebrow:'2 hours later · 10:51 AM',
+      title:'IT Support responded to your question',
+      transcript:<span><strong>IT Support:</strong> "Audit logging isn't configured in the current pilot. We're working on it. For now, outputs aren't automatically logged unless you copy them manually."</span>,
+      transcriptCls:'info',
+      detail:'You asked the system what it does with data before giving it data. That\'s not hesitation — it\'s the correct sequence. You now know something critical before enrollment uploads begin.',
+      cta:'See what this means →',
+      time:'10:51 AM',
+    },
+  }[choice];
+
+  return(
+    <div className="eod-overlay">
+      <div className="consequence-card">
+        <div className="csq-header">
+          <div className="csq-icon" style={{background:content.iconBg,color:content.iconColor,fontSize:22}}>{content.icon}</div>
+          <div className="csq-header-text">
+            <div className="csq-eyebrow">{content.eyebrow}</div>
+            <div className="csq-title">{content.title}</div>
+          </div>
+        </div>
+        <div className="csq-body">
+          <div className={`csq-transcript ${content.transcriptCls}`}>{content.transcript}</div>
+          <div className="csq-detail">{content.detail}</div>
+          <button className="csq-cta" onClick={onRevealDebrief}>
+            <span>{content.cta}</span>
+            <span>→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Debrief content ── */
+const DEBRIEF={
+  A:{label:'Branch A — The Legal Call',
+    content:<>
+      <p>The Benefits Summary PDF was the right upload. The CorePeople360 export was not.</p>
+      <p>It contained partial SSNs, dates of birth, and dependent information — heightened PII categories under MDC's data handling policy and applicable employment law.</p>
+      <ul>
+        <li>HR Buddy processed 14 employee-specific queries using data from the export</li>
+        <li>HR Buddy has no audit trail for what it accessed or output in its current pilot configuration</li>
+        <li>Three states where MDC operates legally require disclosure of AI processing of employment records before processing occurs — not after a complaint surfaces</li>
+      </ul>
+      <p>The workflow problem was real and solvable. The consent problem was invisible until it wasn't.</p>
+    </>,
+    reinf:'Before uploading any file to an AI system, ask — does this contain employee-specific information? If yes, stop and ask what the consent and disclosure requirements are before proceeding.',
+    carry:['HR Buddy has no automatic audit trail in its current pilot configuration.','An employee has already asked whether their records were accessed by AI.','Legal is now involved.']},
+  B:{label:'Branch B — The Good Call',
+    content:<>
+      <p>You recognized that the Benefits Summary PDF and the CorePeople360 export are not the same category of data.</p>
+      <p>One is operational documentation. The other contains heightened PII — partial SSNs, dates of birth, dependent information — with separate handling requirements. You used HR Buddy for what it could safely do, and held the boundary on what required a compliance conversation first.</p>
+      <p>That boundary — between what the system <em>can</em> do and what it's <em>authorized</em> to do with specific data categories — is the most important judgment an HR professional makes when working with AI tools.</p>
+    </>,
+    reinf:"An AI system's capability is not the same as its authorization. HR Buddy can process anything you upload. That doesn't mean everything you have is appropriate to upload.",
+    carry:['HR Buddy can safely handle general plan document questions.','The CSV boundary — employee records with PII — requires a compliance conversation before access.','Legal is looping in proactively, before a complaint.']},
+  C:{label:'Branch C — The Right Question',
+    content:<>
+      <p>You asked the system what it does with data before giving it data. That's not hesitation — that's the correct sequence.</p>
+      <p>In HR, the data handling question comes before the workflow question, every time. You now know something that changes how enrollment proceeds:</p>
+      <ul>
+        <li>Audit logging is not configured in the current HR Buddy pilot</li>
+        <li>Outputs are not automatically logged unless manually captured</li>
+        <li>Any use of HR Buddy with employee records creates an undocumented data trail until this is resolved</li>
+      </ul>
+      <p>You uploaded only the Benefits Summary PDF and drafted a note to your manager framing next steps. That is exactly right.</p>
+    </>,
+    reinf:"Before uploading to any AI system, ask: what happens to this data after I upload it? If you don't have a clear answer, find one before proceeding.",
+    carry:['Audit logging is not configured in the current HR Buddy pilot.','Asking what a system does with data is the correct first move — not a hesitation.','You have a compliance note drafted for your manager before enrollment opens.']},
+};
+
+/* ══════════════════════════════════════
+   MOBILE LAYOUT COMPONENTS
+   ══════════════════════════════════════ */
+
+const MOB_DEBRIEF_CONTENT = {
+  A:{heading:'Branch A — The Legal Call',
+    body:<><p>The Benefits Summary PDF was the right upload. The CorePeople360 export was not. It contained partial SSNs, dates of birth, and dependent information — heightened PII.</p><div className="mob-db-callout">"Jamie, we need to talk about HR Buddy. An employee filed a complaint. They want to know what system accessed their personal records today and whether they consented to it."</div><ul><li>HR Buddy processed 14 employee-specific queries using the export</li><li>No audit trail exists for what it accessed or output</li><li>Three MDC states legally require disclosure before AI processes employment records</li></ul></>,
+    reinf:'Before uploading any file to an AI system, ask — does this contain employee-specific information? If yes, stop and ask what the consent and disclosure requirements are before proceeding.',
+    carry:['HR Buddy has no automatic audit trail in its current pilot.','An employee has already asked whether their records were accessed by AI.','Legal is now involved.']},
+  B:{heading:'Branch B — The Good Call',
+    body:<><p>You recognized that the Benefits Summary PDF and the CorePeople360 export are not the same category of data. One is operational documentation. The other contains heightened PII.</p><div className="mob-db-callout good">Your manager: "Good call. Let me loop in Legal."</div><p>HR Buddy deflected 23 general benefits questions. Employee-specific queries were handled manually. The boundary held.</p></>,
+    reinf:"An AI system's capability is not the same as its authorization. HR Buddy can process anything you upload. That doesn't mean everything you have is appropriate to upload.",
+    carry:['HR Buddy can safely handle general plan document questions.','The CSV boundary requires a compliance conversation first.','Legal is looping in proactively.']},
+  C:{heading:'Branch C — The Right Question',
+    body:<><p>You asked the system what it does with data before giving it data. That's not hesitation — that's the correct sequence.</p><div className="mob-db-callout info">IT Support: "Audit logging isn't configured in the current pilot. Outputs aren't automatically logged unless you copy them manually."</div><p>You uploaded only the Benefits Summary PDF and drafted a note to your manager framing next steps.</p></>,
+    reinf:"Before uploading to any AI system, ask: what happens to this data after I upload it? If you don't have a clear answer, find one before proceeding.",
+    carry:['Audit logging is not configured in the current HR Buddy pilot.','Asking what a system does with data is the correct first move.','You have a compliance note drafted for your manager.']},
+};
+
+const MOB_CONSEQUENCE_CONTENT = {
+  A:{icon:'📞',iconBg:'#fef2f2',iconColor:'#dc2626',eyebrow:'End of day · 5:47 PM',title:'Legal Department — Incoming Call',transcript:<span><strong>Legal:</strong> "Jamie, we need to talk about HR Buddy. An employee filed a complaint. They want to know what system accessed their personal records today and whether they consented to it."</span>,transcriptCls:'legal',detail:'HR Buddy processed 14 employee-specific queries using data from the CorePeople360 export. No audit trail exists.',cta:'See the full picture →'},
+  B:{icon:'✓',iconBg:'#f0fdf4',iconColor:'#059669',eyebrow:'End of day · 4:58 PM',title:'23 HelpGate tickets resolved today',transcript:<span><strong>Marcus L. · 4:58 PM:</strong> "Good call. Let me loop in Legal."</span>,transcriptCls:'good',detail:'HR Buddy deflected 23 general benefits questions. Employee-specific queries were handled manually through CorePeople360.',cta:'See what you got right →'},
+  C:{icon:'💬',iconBg:'#eff6ff',iconColor:'#2563eb',eyebrow:'2 hours later · 10:51 AM',title:'IT Support responded to your question',transcript:<span><strong>IT Support:</strong> "Audit logging isn't configured in the current pilot. Outputs aren't automatically logged unless you copy them manually."</span>,transcriptCls:'info',detail:"You asked the system what it does with data before giving it data. That's not hesitation — it's the correct sequence.",cta:'See what this means →'},
+};
+
+function MobileLayout({screen,selected,choice,onBeginDecide,onToggle,onUpload,onAskFirst,onRevealDebrief,onReset}){
+  const deciding = screen==='deciding';
+  const isEod = screen==='consequence'||screen==='debrief';
+  const clockTime = isEod?(choice==='A'?'5:47 PM':choice==='B'?'4:58 PM':'10:51 AM'):'8:47 AM';
+  const hasFiles = selected.length>0;
+  const csq = choice?MOB_CONSEQUENCE_CONTENT[choice]:null;
+  const db = choice?MOB_DEBRIEF_CONTENT[choice]:null;
+
+  return(
+    <div className="mob-root">
+      {/* Sticky header */}
+      <div className="mob-hdr" style={{background:isEod?'#070c18':'#0d1117',transition:'background 1.2s'}}>
+        <img src="assets/mdc-logo.png" style={{width:22,height:22,flexShrink:0}} alt="MDC"/>
+        <div className="mob-hdr-title">Unit 1 of 3 — The Data Inside the Form</div>
+        <div className="mob-prog-dots" style={{marginRight:8}}>
+          <div className="mob-prog-dot on"/>
+          <div className={`mob-prog-dot ${deciding||isEod?'on':''}`}/>
+          <div className={`mob-prog-dot ${isEod?'on':''}`}/>
+        </div>
+        <div className="mob-hdr-time">{clockTime}</div>
+      </div>
+
+      <div className="mob-body">
+
+        {/* ── Scene / Deciding ── */}
+        {(screen==='scene'||screen==='deciding')&&(<>
+
+          {/* Teams messages */}
+          <div className="mob-label">HR Team Chat</div>
+          <div className="mob-teams-card">
+            <div className="mob-teams-hdr">
+              <div style={{width:20,height:20,borderRadius:'50%',background:'#dc2626',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,color:'#fff'}}>HR</div>
+              HR Team Chat · Today
+            </div>
+            <div className="mob-msg">
+              <div className="mob-msg-av" style={{background:'#7c3aed'}}>ML</div>
+              <div style={{flex:1}}>
+                <span className="mob-msg-who">Marcus L., Manager, HR</span>
+                <span className="mob-msg-when">8:47 AM</span>
+                <div className="mob-msg-bubble urgent">Jamie, urgency on that HelpGate ticket #90210. The VP is now aware. Need status by 9:15 AM.</div>
+              </div>
+            </div>
+            <div className="mob-msg">
+              <div className="mob-msg-av" style={{background:'#7c3aed'}}>ML</div>
+              <div style={{flex:1}}>
+                <span className="mob-msg-who">Marcus L., Manager, HR</span>
+                <span className="mob-msg-when">8:47 AM</span>
+                <div className="mob-msg-bubble key">Jamie — HR Buddy can now compare plan PDFs and answer benefits questions. I want to use it to handle the enrollment volume this year. Can you get it set up to answer employee questions about OptiEnroll Hub? Would save us a ton of time.</div>
+              </div>
+            </div>
+          </div>
+
+          {/* File cards */}
+          <div className="mob-label">Files open on your desktop</div>
+          <div className="mob-files">
+            {[
+              {key:'pdf',label:'PDF',color:'#dc2626',name:'MDC_Benefits_2026_Summary.pdf'},
+              {key:'csv',label:'CSV',color:'#059669',name:'CorePeople360_Enrollment_Export_Oct14.csv'},
+            ].map(f=>{
+              const isSel=selected.includes(f.key);
+              return(
+                <div key={f.key}
+                  className={`mob-file-card ${deciding?'selectable':''} ${isSel?'selected':''}`}
+                  onClick={deciding?()=>onToggle(f.key):undefined}>
+                  <div className="mob-file-ico" style={{background:f.color}}>{f.label}</div>
+                  <div className="mob-file-name">{f.name}</div>
+                  {isSel&&<div className="mob-file-check">✓ selected</div>}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* HR Buddy card */}
+          <div className="mob-hrb-card">
+            <div className="mob-hrb-hdr">
+              <HRBuddyIcon size={24}/>
+              <div className="mob-hrb-name">HR Buddy</div>
+              <div className="mob-hrb-badge">HR Buddy</div>
+            </div>
+            <div className="mob-hrb-body">
+              {!deciding&&(
+                <>
+                  <div className="mob-hrb-bubble">Welcome, Jamie! Need help prioritizing your morning? Reviewing new HelpGate tickets now.</div>
+                  <button className="mob-upload-btn" onClick={onBeginDecide}>Upload documents to get started →</button>
+                </>
+              )}
+              {deciding&&(
+                <>
+                  <div className="mob-dec-prompt">
+                    <p>HR Buddy is waiting.</p>
+                    <strong>What do you upload?</strong>
+                  </div>
+                  {hasFiles&&(
+                    <div className="mob-staged">
+                      {selected.includes('pdf')&&<div className="mob-staged-row"><div style={{width:16,height:16,background:'#dc2626',borderRadius:2,display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,fontWeight:700,color:'#fff',flexShrink:0}}>PDF</div>MDC_Benefits_2026_Summary.pdf</div>}
+                      {selected.includes('csv')&&<div className="mob-staged-row"><div style={{width:16,height:16,background:'#059669',borderRadius:2,display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,fontWeight:700,color:'#fff',flexShrink:0}}>CSV</div>CorePeople360_Enrollment_Export_Oct14.csv</div>}
+                    </div>
+                  )}
+                  <div className="mob-decision-tiles">
+                    {[
+                      {k:'A',label:'Upload both files — HR Buddy needs the full picture.',sub:'Benefits PDF + CorePeople360 export',cls:'a',action:()=>onUpload('A')},
+                      {k:'B',label:'Upload only the Benefits Summary PDF.',sub:'Benefits PDF only',cls:'b',action:()=>onUpload('B')},
+                      {k:'C',label:"Ask HR Buddy what it does with documents first.",sub:'No upload yet',cls:'c',action:onAskFirst},
+                    ].map(o=>(
+                      <div key={o.k} className={`mob-d-tile ${o.cls}`} onClick={o.action}>
+                        <div className="mob-d-tile__key">{o.k}</div>
+                        <div><div className="mob-d-tile__main">{o.label}</div><div className="mob-d-tile__sub">{o.sub}</div></div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+        </>)}
+
+        {/* ── Consequence ── */}
+        {screen==='consequence'&&csq&&(
+          <div className="mob-consequence">
+            <div className="mob-csq-hdr">
+              <div className="mob-csq-icon" style={{background:csq.iconBg,color:csq.iconColor}}>{csq.icon}</div>
+              <div><div className="mob-csq-eyebrow">{csq.eyebrow}</div><div className="mob-csq-title">{csq.title}</div></div>
+            </div>
+            <div className="mob-csq-body">
+              <div className={`mob-csq-transcript ${csq.transcriptCls}`}>{csq.transcript}</div>
+              <div className="mob-csq-detail">{csq.detail}</div>
+              <button className="mob-csq-cta" onClick={onRevealDebrief}><span>{csq.cta}</span><span>→</span></button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Debrief ── */}
+        {screen==='debrief'&&db&&(
+          <div className="mob-debrief">
+            <div className="mob-db-eyebrow">What just happened · Unit 1 of 3</div>
+            <div className="mob-db-heading">{db.heading}</div>
+            <div className="mob-db-body">{db.body}</div>
+            <div className="mob-db-reinf">{db.reinf}</div>
+            <div className="mob-carry">
+              <div className="mob-carry-ttl">Three things to carry into Unit 2</div>
+              {db.carry.map((c,i)=><div key={i} className="mob-carry-item"><div className="mob-carry-dot"/>{c}</div>)}
+            </div>
+            <button className="mob-cont-btn" onClick={onReset}>Continue to Unit 2 →</button>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+/* ── App ── */
+function App(){
+  const [screen,setScreen]=useState('opening');
+  const [selected,setSelected]=useState([]);
+  const [choice,setChoice]=useState(null);
+  const [cpErr,setCpErr]=useState(true);
+  const [isMobile,setIsMobile]=useState(()=>window.innerWidth<=768);
+  const stageRef=useRef(null);
+  const deskRef=useRef(null);
+
+  useEffect(()=>{
+    function scale(){
+      if(!stageRef.current||!deskRef.current)return;
+      const s=Math.min(stageRef.current.clientWidth/1440,stageRef.current.clientHeight/900);
+      deskRef.current.style.transform=`scale(${s})`;
+    }
+    function checkMobile(){setIsMobile(window.innerWidth<=768)}
+    scale();
+    checkMobile();
+    window.addEventListener('resize',scale);
+    window.addEventListener('resize',checkMobile);
+    return()=>{window.removeEventListener('resize',scale);window.removeEventListener('resize',checkMobile)};
+  },[]);
+
+  function toggleFile(key){setSelected(prev=>prev.includes(key)?prev.filter(k=>k!==key):[...prev,key])}
+
+  // Desktop upload: infer from selected files
+  function handleUpload(){
+    setChoice(selected.includes('csv')?'A':'B');
+    setScreen('consequence');
+  }
+
+  // Mobile upload: branch passed directly from tile choice
+  function handleMobileUpload(branch){setChoice(branch);setScreen('consequence');}
+
+  function handleAskFirst(){setChoice('C');setScreen('consequence')}
+  function handleRevealDebrief(){setScreen('debrief')}
+  function handleReset(){setScreen('scene');setSelected([]);setChoice(null);setCpErr(true)}
+
+  const deciding=screen==='deciding';
+  const isEod=screen==='consequence'||screen==='debrief';
+  const d=choice?DEBRIEF[choice]:null;
+
+  // CSS classes for dimming
+  const sceneDim = deciding ? 'dimmed' : isEod ? 'eod-dim' : '';
+  const stickyDim = deciding ? 'dimmed' : isEod ? '' : '';
+  const filesDim = isEod ? 'eod-dim' : '';
+  const hrbDim = isEod ? 'eod-dim' : '';
+  const toastDim = isEod ? 'eod-dim' : '';
+  const eodMessages = choice==='B';
+  const eodHelpGate = isEod;
+  const clockTime = isEod ? (choice==='A'?'5:47 PM':choice==='B'?'4:58 PM':'10:51 AM') : '8:47 AM';
+
+  return(
+    <div className="stage" ref={stageRef}>
+
+      {/* ── OPENING SCREEN ── */}
+      {screen==='opening'&&(
+        <div className="opening-screen">
+          <div className="opening-card">
+            <div className="op-eyebrow">Unit 1 of 3 — The Data Inside the Form</div>
+            <div className="op-body">
+              <p>It's October 14th. Open enrollment opens in three days.</p>
+              <p>You are Jamie, an HR Coordinator at Meridian Dynamics Corporation. You've been managing open enrollment for four years. You know what's coming — the flood of "which plan should I pick" tickets in HelpGate, the employees who can't find their dependent verification docs, the managers who forward questions they should be answering themselves.</p>
+              <p>This year is different. IT deployed HR Buddy, the new AI assistant, two months ago. Your manager sends a message at 8:47am:</p>
+            </div>
+            <div className="op-quote">"Jamie — HR Buddy can now compare plan PDFs and answer benefits questions. I want to use it to handle the enrollment volume this year. Can you get it set up to answer employee questions about OptiEnroll Hub? Would save us a ton of time."</div>
+            <div className="op-body">
+              <p>You open HR Buddy. It's asking you to upload documents to get started.</p>
+              <p>You have two files open on your desktop:</p>
+            </div>
+            <div className="op-files">
+              <div className="op-files-row">
+                <div className="op-file-badge" style={{background:'#dc2626'}}>PDF</div>
+                <div><strong>MDC_Benefits_2026_Summary.pdf</strong> — the plan comparison document from OptiEnroll Hub. Includes HDHP vs PPO premium tables, HSA contribution limits, and coverage tiers.</div>
+              </div>
+              <div className="op-files-row">
+                <div className="op-file-badge" style={{background:'#059669'}}>CSV</div>
+                <div><strong>CorePeople360_Enrollment_Export_Oct14.csv</strong> — a roster export you pulled this morning to check who hasn't completed dependent verification. Contains employee names, SSNs (partial), DOB, enrollment status, and dependent information.</div>
+              </div>
+            </div>
+            <div className="op-cta">HR Buddy is waiting. What do you upload?</div>
+            <button className="op-btn" onClick={()=>setScreen('scene')}>Enter the scenario →</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── MOBILE LAYOUT ── */}
+      {isMobile&&(
+        <MobileLayout
+          screen={screen}
+          selected={selected}
+          choice={choice}
+          onBeginDecide={()=>setScreen('deciding')}
+          onToggle={toggleFile}
+          onUpload={handleMobileUpload}
+          onAskFirst={handleAskFirst}
+          onRevealDebrief={()=>setScreen('debrief')}
+          onReset={handleReset}
+        />
+      )}
+
+      {/* ── DESKTOP LAYOUT ── */}
+      <div className={`desktop ${isEod?'eod':''}`} ref={deskRef}>
+
+        {/* Progress */}
+        <div className="prog">
+          <img src="assets/mdc-logo.png" style={{width:18,height:18,opacity:.9,flexShrink:0}} alt="MDC"/>
+          <div className="prog-txt">Unit 1 of 3 — The Data Inside the Form</div>
+          <div className="prog-dots">
+            <div className="prog-dot on"/>
+            <div className={`prog-dot ${deciding||isEod?'on':''}`}/>
+            <div className={`prog-dot ${isEod?'on':''}`}/>
+          </div>
+        </div>
+
+        {/* Recycle bin */}
+        <div style={{position:'absolute',top:34,left:10,display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:5,borderRadius:3,cursor:'pointer',opacity:deciding||isEod?.15:1,transition:'opacity .5s',pointerEvents:deciding||isEod?'none':'auto'}}>
+          <div style={{fontSize:20}}>🗑</div>
+          <div style={{fontSize:9,color:'rgba(255,255,255,.8)',textShadow:'0 1px 2px rgba(0,0,0,.6)'}}>Recycle Bin</div>
+        </div>
+
+        <TeamsWin dimCls={sceneDim} eodMessages={eodMessages}/>
+        <HelpGateWin dimCls={sceneDim} eodMode={eodHelpGate}/>
+        <CP360Win dimCls={sceneDim} showErr={cpErr} onDismiss={()=>setCpErr(false)}/>
+
+        {/* Sticky */}
+        <div className={`sticky ${stickyDim}`} style={{left:672,top:290,width:158,opacity:deciding?.25:isEod?.1:1,transition:'opacity .5s',pointerEvents:deciding||isEod?'none':'auto'}}>
+          <div className="sticky-hdr">Notes <span>✕</span></div>
+          <div className="sticky-body">Jamie's notes:<br/>OE starts Friday! Check CorePeople360 feed, verify HelpGate queue. Marcus needs updates.</div>
+        </div>
+
+        <FileIcons deciding={deciding} selected={selected} onToggle={toggleFile} dimCls={filesDim}/>
+
+        <HRBuddySidebar deciding={deciding} selected={selected} onBeginDecide={()=>setScreen('deciding')} onUpload={handleUpload} onAskFirst={handleAskFirst} dimCls={hrbDim}/>
+
+        <ToastOverlay dimCls={toastDim}/>
+        <Taskbar time={clockTime}/>
+
+        {/* Consequence overlay — end of day */}
+        {screen==='consequence'&&choice&&(
+          <ConsequenceOverlay choice={choice} onRevealDebrief={handleRevealDebrief}/>
+        )}
+
+        {/* Debrief overlay */}
+        {screen==='debrief'&&d&&(
+          <div className="debrief-overlay">
+            <div className="debrief-card">
+              <div className="db-eyebrow">What just happened · Unit 1 of 3</div>
+              <div className="db-heading">{d.label}</div>
+              <div className="db-body">{d.content}</div>
+              <div className="db-reinf">{d.reinf}</div>
+              <div className="carry">
+                <div className="carry-ttl">Three things to carry into Unit 2</div>
+                {d.carry.map((c,i)=><div key={i} className="carry-item"><div className="carry-dot"/>{c}</div>)}
+              </div>
+              <div className="cont-btn" onClick={()=>window.location.href='unit2.html'}>Continue to Unit 2 →</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
